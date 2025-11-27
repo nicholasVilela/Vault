@@ -29,8 +29,8 @@ public static class Metadata {
     return sb.ToString();
   }
 
-  public static async Task Write(string yaml, string metadataPath, CancellationToken cancellationToken) {
-    await File.WriteAllTextAsync(metadataPath, yaml, cancellationToken);
+  public static async Task Write(string yaml, string metadataPath) {
+    await File.WriteAllTextAsync(metadataPath, yaml);
   }
 
   public static async void BuildAndWrite(
@@ -40,10 +40,9 @@ public static class Metadata {
     string platform,
     string coverUrl,
     List<string> screenshots,
-    string gameFolderPath,
-    CancellationToken cancellationToken
+    string gameFolderPath
   ) {
     var metadataPath = Path.Combine(gameFolderPath, "metadata.yaml");
-    await Write(Build(title, gameId, gameCode, platform, coverUrl, screenshots), metadataPath, cancellationToken);
+    await Write(Build(title, gameId, gameCode, platform, coverUrl, screenshots), metadataPath);
   }
 }

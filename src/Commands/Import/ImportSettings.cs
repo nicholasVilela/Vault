@@ -23,4 +23,7 @@ public class ImportSettings : CommandSettings {
   [CommandOption("-p|--path")]
   [Description("Drive, e.g. Z:/")]
   public string Path { get; set; } = "Z:/";
+
+  public string ReadPath => $"{Path}{Console}/Games";
+  public string WritePath => $"{Path}{Console}";
 }
