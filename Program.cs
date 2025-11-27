@@ -1,8 +1,10 @@
-﻿using Spectre.Console.Cli;
+﻿using System.Text;
+using Spectre.Console.Cli;
 using Vault.Commands;
 
 class Program {
   static int Main(string[] args) {
+    Console.OutputEncoding = Encoding.UTF8;
     var app = new CommandApp();
     app.Configure(config => {
       config.SetApplicationName("vault");
