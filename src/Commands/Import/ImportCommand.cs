@@ -8,20 +8,20 @@ namespace Vault.Commands;
 
 public class ImportCommand : AsyncCommand<ImportSettings> {
   public override async Task<int> ExecuteAsync(CommandContext context, ImportSettings settings, CancellationToken _cancellationToken) {
-    if (string.IsNullOrWhiteSpace(settings.Console)) return Fail("--console is required");
-    if (!Directory.Exists(settings.ReadPath)) return Fail($"Path does not exist: {settings.ReadPath}");
+    if (string.IsNullOrWhiteSpace(settings.Console)) return ConsoleHelper.Fail("--console is required");
+    if (!Directory.Exists(settings.ReadPath)) return ConsoleHelper.Fail($"Path does not exist: {settings.ReadPath}");
 
     var clientId = Environment.GetEnvironmentVariable("IGDB_CLIENT_ID");
-    if (string.IsNullOrWhiteSpace(clientId)) return Fail("Missing IGDB_CLIENT_ID environment variable.");
+    if (string.IsNullOrWhiteSpace(clientId)) return ConsoleHelper.Fail("Missing IGDB_CLIENT_ID environment variable.");
 
     var clientSecret = Environment.GetEnvironmentVariable("IGDB_CLIENT_SECRET");
-    if (string.IsNullOrWhiteSpace(clientSecret)) return Fail("Missing IGDB_CLIENT_SECRET environment variable.");
+    if (string.IsNullOrWhiteSpace(clientSecret)) return ConsoleHelper.Fail("Missing IGDB_CLIENT_SECRET environment variable.");
 
     var files = Directory
       .GetFiles(settings.ReadPath, "*.zip*")
       .Where(f => settings.Name == null ? true : Path.GetFileNameWithoutExtension(f) == settings.Name)
       .ToList();
-    if (files.Count == 0) return Warning($"No game files found in: {settings.ReadPath}");
+    if (files.Count == 0) return ConsoleHelper.Warning($"No game files found in: {settings.ReadPath}");
 
     AnsiConsole.MarkupLine($"Importing {files.Count} [green]{settings.Console}[/] game{(files.Count > 1 ? "s" : "")} (region: [yellow]{settings.Region}[/], version: [yellow]{settings.Version}[/], name: [cyan]{settings.Name ?? "any"}[/])");
 
@@ -113,10 +113,9 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     if (File.Exists(versionFilePath)) {
       progress.Increment(fileLength);
     } else {
-      await CopyFileWithProgressAsync(
+      await FileHelper.Copy(
         filePath,
-        versionFilePath,
-        progress
+        versionFilePath
       );
     }
 
@@ -131,51 +130,5 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     );
 
     progress.Increment(1);
-  }
-
-  static async Task CopyFileWithProgressAsync(
-  string sourcePath,
-  string destPath,
-  ProgressTask progress
-  ) {
-    const int bufferSize = 81920;
-    var buffer = new byte[bufferSize];
-
-    await using var source = new FileStream(
-      sourcePath,
-      FileMode.Open,
-      FileAccess.Read,
-      FileShare.Read
-    );
-
-    await using var dest = new FileStream(
-      destPath,
-      FileMode.Create,
-      FileAccess.Write,
-      FileShare.None
-    );
-
-    var copied = 0;
-
-    while (true) {
-      var read = await source.ReadAsync(buffer, 0, buffer.Length);
-      if (read == 0)
-        break;
-
-      await dest.WriteAsync(buffer, 0, read);
-      copied += read;
-
-      progress.Increment(read);
-    }
-  }
-
-  int Fail(string text) {
-    AnsiConsole.MarkupLine($"[red]{text}[/]");
-    return -1;
-  }
-
-  int Warning(string text) {
-    AnsiConsole.MarkupLine($"[yellow]{text}[/]");
-    return -1;
   }
 }

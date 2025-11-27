@@ -7,6 +7,7 @@ class Program {
     app.Configure(config => {
       config.SetApplicationName("vault");
       config.AddCommand<ImportCommand>("import");
+      config.AddCommand<ExportCommand>("export");
     });
 
     return app.Run(args);
