@@ -2,11 +2,14 @@ using System.Collections.Concurrent;
 using System.Text;
 using Spectre.Console;
 using Spectre.Console.Cli;
+using Spectre.Console.Rendering;
 using Vault.IGDB;
 
 namespace Vault.Commands;
 
 public class ImportCommand : AsyncCommand<ImportSettings> {
+  const long OverheadUnitsPerGame = 1024 * 1024;
+
   public override async Task<int> ExecuteAsync(CommandContext context, ImportSettings settings, CancellationToken _cancellationToken) {
     if (string.IsNullOrWhiteSpace(settings.Console)) return ConsoleHelper.Fail("--console is required");
     if (!Directory.Exists(settings.ReadPath)) return ConsoleHelper.Fail($"Path does not exist: {settings.ReadPath}");
@@ -20,41 +23,51 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     var files = Directory
       .GetFiles(settings.ReadPath, "*.zip*")
       .Where(f => settings.Name == null ? true : Path.GetFileNameWithoutExtension(f) == settings.Name)
+      .Select(f => new FileInfo(f))
       .ToList();
     if (files.Count == 0) return ConsoleHelper.Warning($"No game files found in: {settings.ReadPath}");
 
-    AnsiConsole.MarkupLine($"Importing {files.Count} [green]{settings.Console}[/] game{(files.Count > 1 ? "s" : "")} (region: [yellow]{settings.Region}[/], version: [yellow]{settings.Version}[/], name: [cyan]{settings.Name ?? "any"}[/])");
-
     using var igdb = new IgdbService(clientId, clientSecret);
+
+    var processedGames = 0;
     var errors = new ConcurrentBag<string>();
+    var totalWork = FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame;
     await AnsiConsole.Progress()
       .Columns(
-        new TaskDescriptionColumn(),
         new ProgressBarColumn(),
         new PercentageColumn(),
-        new RemainingTimeColumn())
+        new RemainingTimeColumn(),
+        new ElapsedTimeColumn())
+      .UseRenderHook((renderable, tasks) => RenderHook(files.Count, settings, renderable, () => Volatile.Read(ref processedGames)))
       .StartAsync(async ctx => {
+        var masterTask = ctx.AddTask(
+          $"Master",
+          autoStart: true,
+          maxValue: totalWork
+        );
+
         var semaphore = new SemaphoreSlim(8);
         var tasks = new List<Task>();
 
         foreach (var file in files) {
-          var fileNameNoExt = Path.GetFileNameWithoutExtension(file);
+          var filePath = file.FullName;
+          var fileNameNoExt = Path.GetFileNameWithoutExtension(filePath);
           var displayName = fileNameNoExt.Replace("_", ":");
-
-          var fileLength = new FileInfo(file).Length;
-          var maxValue = fileLength + 4;
-          var gameTask = ctx.AddTask(displayName, autoStart: true, maxValue: maxValue);
 
           tasks.Add(Task.Run(async () => {
             await semaphore.WaitAsync();
-            await ProcessGameAsync(
+            await Import(
               file,
-              fileLength,
               settings,
               igdb,
-              gameTask)
-              .Catch(ex => errors.Add($"[red]Error processing {displayName}:[/] {ex.Message}"))
-              .Finally(() => semaphore.Release());
+              masterTask)
+              .Catch(ex => {
+                errors.Add($"[red]Error processing {displayName}:[/] {ex.Message}");
+              })
+              .Finally(() => {
+                semaphore.Release();
+                Interlocked.Increment(ref processedGames);
+              });
           }));
         }
 
@@ -66,37 +79,46 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       foreach (var err in errors) AnsiConsole.MarkupLine(err);
     }
 
-    AnsiConsole.MarkupLine("[green]Import completed.[/]");
     return 0;
   }
 
-  static async Task ProcessGameAsync(
-    string filePath,
-    long fileLength,
+  static async Task Import(
+    FileInfo fileInfo,
     ImportSettings settings,
     IgdbService igdb,
     ProgressTask progress
     ) {
+    var filePath = fileInfo.FullName;
+    var fileSize = fileInfo.Length;
+
     var fileNameNoExt = Path.GetFileNameWithoutExtension(filePath);
     var displayName = fileNameNoExt.Replace("_", ":");
 
+    var overheadRemaining = OverheadUnitsPerGame;
+
     var game = await igdb.SearchGameAsync(displayName);
-    progress.Increment(1);
 
     if (game == null) {
       AnsiConsole.MarkupLine($"[yellow]No IGDB match for:[/] {displayName}");
-      progress.Increment(progress.MaxValue);
+      progress.Increment(fileSize + overheadRemaining);
       return;
     }
+
+    var overheadStep = OverheadUnitsPerGame / 4;
+
+    progress.Increment(overheadStep);
+    overheadRemaining -= overheadStep;
 
     var coverTaskCall = igdb.SearchCoverUrlAsync(game.Id);
     var shotsTaskCall = igdb.SearchScreenshotUrlsAsync(game.Id);
 
     await coverTaskCall;
-    progress.Increment(1);
+    progress.Increment(overheadStep);
+    overheadRemaining -= overheadStep;
 
     await shotsTaskCall;
-    progress.Increment(1);
+    progress.Increment(overheadStep);
+    overheadRemaining -= overheadStep;
 
     var coverUrl = coverTaskCall.Result;
     var screenshots = shotsTaskCall.Result;
@@ -110,13 +132,16 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     Directory.CreateDirectory(versionsFolderPath);
 
     var versionFilePath = Path.Combine(versionsFolderPath, settings.Version + ".zip");
-    if (File.Exists(versionFilePath)) {
-      progress.Increment(fileLength);
-    } else {
-      await FileHelper.Copy(
-        filePath,
-        versionFilePath
-      );
+    var copiedForThisFile = 0L;
+    var copyProgress = new Progress<long>(bytes => {
+      if (bytes <= 0) return;
+      copiedForThisFile += bytes;
+      progress.Increment(bytes);
+    });
+    await FileHelper.Copy(filePath, versionFilePath, copyProgress);
+
+    if (copiedForThisFile < fileSize) {
+      progress.Increment(fileSize - copiedForThisFile);
     }
 
     Metadata.BuildAndWrite(
@@ -129,6 +154,46 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       gameFolderPath
     );
 
-    progress.Increment(1);
+    if (overheadRemaining > 0) {
+      progress.Increment(overheadRemaining);
+    }
+  }
+
+  private static IRenderable RenderHook(int fileCount, ImportSettings settings, IRenderable renderable, Func<int> getProcessedGames) {
+    var gameLabel = fileCount == 1 ? "game" : "games";
+
+    var grid = new Grid();
+    grid.AddColumn(new GridColumn());
+    grid.AddColumn(new GridColumn());
+
+    grid.AddRow(
+      new Markup("[bold]Imported:[/]"),
+      new Markup($"[cyan]{getProcessedGames()}/{fileCount}[/] [green]{settings.Console}[/] {gameLabel}")
+    );
+
+    grid.AddRow(
+      new Markup("[grey]Name:[/]"),
+      new Markup($"[yellow]{settings.Name ?? "any"}[/]")
+    );
+
+    grid.AddRow(
+      new Markup("[grey]Region:[/]"),
+      new Markup($"[yellow]{settings.Region}[/]")
+    );
+
+    grid.AddRow(
+      new Markup("[grey]Version:[/]"),
+      new Markup($"[yellow]{settings.Version}[/]")
+    );
+
+    grid.AddRow(
+      new Markup("[grey]Destination:[/]"),
+      new Markup($"[green]{settings.WritePath}[/]")
+    );
+
+    var header = new Panel(new Rows(renderable, grid)).RoundedBorder();
+    header.Padding(new Padding(0, 0, 0,0));
+
+    return new Rows(header);
   }
 }
