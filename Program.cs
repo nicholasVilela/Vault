@@ -1,2 +1,14 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿using Spectre.Console.Cli;
+using Vault.Commands;
+
+class Program {
+  static int Main(string[] args) {
+    var app = new CommandApp();
+    app.Configure(config => {
+      config.SetApplicationName("vault");
+      config.AddCommand<ImportCommand>("import");
+    });
+
+    return app.Run(args);
+  }
+}
