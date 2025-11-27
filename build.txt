@@ -1,1 +1,0 @@
-dotnet pack -c Release;dotnet tool uninstall -g vault;dotnet tool install -g vault --add-source .\bin\Release
