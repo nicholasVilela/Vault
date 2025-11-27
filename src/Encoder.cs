@@ -8,28 +8,19 @@ public static class Encoder {
   private const int BaseValue = 36;
 
   public static string Encode(long idNumber, int length = 8) {
-    if (idNumber < 0) {
-      throw new ArgumentException("ID must be non-negative");
-    }
+    if (idNumber < 0) throw new ArgumentException("ID must be non-negative");
+    if (idNumber == 0) return new string('0', length);
 
-    if (idNumber == 0) {
-      return new string('0', length);
-    }
-
-    var result = new StringBuilder();
-    long value = idNumber;
+    var result = string.Empty;
+    var value = idNumber;
 
     while (value > 0) {
-      long rem = value % BaseValue;
+      var rem = value % BaseValue;
       value /= BaseValue;
-      result.Insert(0, Chars[(int)rem]);
+      result = Chars[(int)rem] + result;
     }
 
-    while (result.Length < length) {
-      result.Insert(0, '0');
-    }
-
-    return result.ToString();
+    return result.PadLeft(length, '0');
   }
 
   public static long Decode(string code) {

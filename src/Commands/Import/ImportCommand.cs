@@ -25,7 +25,11 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       return -1;
     }
 
-    var files = Directory.GetFiles(path, "*.zip*").Where(f => settings.Name == null ? true : Path.GetFileNameWithoutExtension(f) == settings.Name).ToList();
+    var files = Directory
+      .GetFiles(path, "*.zip*")
+      .Where(f => settings.Name == null ? true : Path.GetFileNameWithoutExtension(f) == settings.Name)
+      .ToList();
+
     if (files.Count == 0) {
       AnsiConsole.MarkupLine("[yellow]No game files found in:[/] " + path);
       return 0;
@@ -34,6 +38,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     AnsiConsole.MarkupLine($"Importing {files.Count} [green]{settings.Console}[/] game{(files.Count > 1 ? "s" : "")} (region: [yellow]{settings.Region}[/], version: [yellow]{settings.Version}[/], name: [cyan]{settings.Name ?? "any"}[/])");
 
     using var igdb = new IgdbService(clientId, clientSecret);
+
     await AnsiConsole.Progress()
       .Columns(
         new TaskDescriptionColumn(),
@@ -41,29 +46,38 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
         new PercentageColumn(),
         new RemainingTimeColumn())
       .StartAsync(async ctx => {
-        var task = ctx.AddTask("Importing games", maxValue: files.Count);
-
         var semaphore = new SemaphoreSlim(8);
         var tasks = new List<Task>();
 
         foreach (var file in files) {
-          await semaphore.WaitAsync(cancellationToken);
+          var fileNameNoExt = Path.GetFileNameWithoutExtension(file);
+          var displayName = fileNameNoExt.Replace("_", ":");
 
-          var fileName = file.Replace("_", ":");
+          var fileLength = new FileInfo(file).Length;
+          var maxValue = fileLength + 4;
+          var gameTask = ctx.AddTask(displayName, autoStart: true, maxValue: maxValue);
 
           var t = Task.Run(async () => {
+            await semaphore.WaitAsync(cancellationToken);
             try {
-              await ProcessGameAsync(file, $"{settings.Path}{settings.Console}/New", settings, igdb, cancellationToken);
+              await ProcessGameAsync(
+                file,
+                fileLength,
+                $"{settings.Path}{settings.Console}",
+                settings,
+                igdb,
+                gameTask,
+                cancellationToken
+              );
             }
-            catch(Exception ex) {
+            catch (Exception ex) {
               AnsiConsole.MarkupLine(
                 "[red]Error processing {0}:[/] {1}",
-                Path.GetFileName(fileName),
+                displayName,
                 ex.Message
               );
             }
             finally {
-              task.Increment(1);
               semaphore.Release();
             }
           }, cancellationToken);
@@ -78,93 +92,109 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     return 0;
   }
 
-  static string ExtractGuessTitle(string fileNameWithoutExt) {
-    var parts = fileNameWithoutExt.Split('-', StringSplitOptions.RemoveEmptyEntries);
-    if (parts.Length < 2) return fileNameWithoutExt.Trim();
-    return parts[1].Trim();
-  }
-
-  static string SanitizeFileName(string name) {
-    var invalid = Path.GetInvalidFileNameChars();
-    var chars = name.Select(c => invalid.Contains(c) ? '_' : c).ToArray();
-    return new string(chars);
-  }
-
   static async Task ProcessGameAsync(
     string filePath,
+    long fileLength,
     string baseDir,
     ImportSettings settings,
     IgdbService igdb,
-    CancellationToken cancellationToken)
-  {
+    ProgressTask progress,
+    CancellationToken cancellationToken
+    ) {
     var fileNameNoExt = Path.GetFileNameWithoutExtension(filePath);
-    var guessedTitle = ExtractGuessTitle(fileNameNoExt.Replace("_", ":"));
+    var displayName = fileNameNoExt.Replace("_", ":");
 
-    var platform = settings.Console;
-    var region = settings.Region;
-    var version = settings.Version;
-
-    var igdbSearchName = guessedTitle;
-    var game = await igdb.SearchGameAsync(igdbSearchName);
+    var game = await igdb.SearchGameAsync(displayName);
+    progress.Increment(1);
 
     if (game == null) {
-      AnsiConsole.MarkupLine($"[yellow]No IGDB match for:[/] {igdbSearchName}");
+      AnsiConsole.MarkupLine($"[yellow]No IGDB match for:[/] {displayName}");
+      progress.Increment(progress.MaxValue);
       return;
     }
 
-    var coverUrl = await igdb.SearchCoverUrlAsync(game.Id);
-    var screenshots = await igdb.SearchScreenshotUrlsAsync(game.Id);
+    var coverTaskCall = igdb.SearchCoverUrlAsync(game.Id);
+    var shotsTaskCall = igdb.SearchScreenshotUrlsAsync(game.Id);
 
-    var gameCode = Encoder.Encode(game.Id);  
-    var gameFolderName = gameCode + " - " + SanitizeFileName(fileNameNoExt);
+    await coverTaskCall;
+    progress.Increment(1);
+
+    await shotsTaskCall;
+    progress.Increment(1);
+
+    var coverUrl = coverTaskCall.Result;
+    var screenshots = shotsTaskCall.Result;
+
+    var gameCode = Encoder.Encode(game.Id);
+    var gameFolderName = gameCode + " - " + fileNameNoExt;
     var gameFolderPath = Path.Combine(baseDir, gameFolderName);
-    var regionFolderPath = Path.Combine(gameFolderPath, "regions", region);
+    var regionFolderPath = Path.Combine(gameFolderPath, "regions", settings.Region);
     var versionsFolderPath = Path.Combine(regionFolderPath, "versions");
 
     Directory.CreateDirectory(versionsFolderPath);
 
-    var versionFilePath = Path.Combine(versionsFolderPath, version + ".zip");
-    if (!File.Exists(versionFilePath)) File.Copy(filePath, versionFilePath, overwrite: false);
+    var versionFilePath = Path.Combine(versionsFolderPath, settings.Version + ".zip");
+    if (File.Exists(versionFilePath)) {
+      progress.Increment(fileLength);
+    } else {
+      await CopyFileWithProgressAsync(
+        filePath,
+        versionFilePath,
+        fileLength,
+        progress,
+        cancellationToken
+      );
+    }
 
-    var metadataPath = Path.Combine(gameFolderPath, "metadata.yaml");
-    var yaml = BuildMetadataYaml(
+    Metadata.BuildAndWrite(
       game.Name,
       game.Id,
       gameCode,
-      platform,
+      settings.Console,
       coverUrl,
-      screenshots
+      screenshots,
+      gameFolderPath,
+      cancellationToken
     );
 
-    await File.WriteAllTextAsync(metadataPath, yaml, cancellationToken);
-
-    AnsiConsole.MarkupLine($"Processed [cyan]{game.Name}[/] → [blue]{gameFolderName}[/]");
+    progress.Increment(1);
   }
 
-  static string BuildMetadataYaml(
-    string title,
-    int gameId,
-    string gameCode,
-    string platform,
-    string coverUrl,
-    List<string> screenshots)
-  {
-    var sb = new StringBuilder();
+  static async Task CopyFileWithProgressAsync(
+  string sourcePath,
+  string destPath,
+  long fileLength,
+  ProgressTask progress,
+  CancellationToken cancellationToken
+  ) {
+    const int bufferSize = 81920;
+    var buffer = new byte[bufferSize];
 
-    var safeTitle = title.Replace("'", "''");
+    await using var source = new FileStream(
+      sourcePath,
+      FileMode.Open,
+      FileAccess.Read,
+      FileShare.Read
+    );
 
-    sb.AppendLine("title: '" + safeTitle + "'");
-    sb.AppendLine("game_id: " + gameId);
-    sb.AppendLine("game_code: " + gameCode);
-    sb.AppendLine("platform: " + platform);
-    sb.AppendLine("media:");
-    sb.AppendLine("  cover: " + (coverUrl ?? "''"));
-    sb.AppendLine("  screenshots:");
+    await using var dest = new FileStream(
+      destPath,
+      FileMode.Create,
+      FileAccess.Write,
+      FileShare.None
+    );
 
-    if (screenshots != null && screenshots.Count > 0) {
-      foreach (var s in screenshots) sb.AppendLine("  - " + s);
+    long copied = 0;
+
+    while (true) {
+      var read = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+      if (read == 0)
+        break;
+
+      await dest.WriteAsync(buffer, 0, read, cancellationToken);
+      copied += read;
+
+      progress.Increment(read);
     }
-
-    return sb.ToString();
   }
 }
