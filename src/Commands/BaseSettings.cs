@@ -6,8 +6,17 @@ namespace Vault.Commands;
 public class BaseSettings : CommandSettings {
   public virtual string Title { get; set; }
   public virtual string ReadPath { get; }
-  public virtual string WritePath { get; }
+  public virtual string DefaultDestination { get; }
 
+  public string WritePath => 
+        string.IsNullOrWhiteSpace(Destination)
+            ? DefaultDestination
+            : Destination;
+
+  [CommandOption("-d|--destination")]
+  [Description("Destination")]
+  public string Destination { get; set; }
+  
   [CommandOption("-c|--console")]
   [Description("Console name, e.g. ps2, switch, snes")]
   public string Console { get; set; }
