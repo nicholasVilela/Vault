@@ -11,70 +11,26 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
 
   public override async Task<int> ExecuteAsync(CommandContext context, ExportSettings settings, CancellationToken _cancellationToken) {
     if (string.IsNullOrWhiteSpace(settings.Console)) return ConsoleHelper.Fail("--console is required");
+
     if (!Directory.Exists(settings.ReadPath)) return ConsoleHelper.Fail($"Path does not exist: {settings.ReadPath}");
 
-    var files = Directory.EnumerateDirectories(settings.ReadPath)
-      .Where(f => Path.GetFileName(f).Contains(" - "))
-      .Select(f => new {
-        Path = f,
-        Name = f.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[2].Split(" - ", 2)[1]
-      })
-      .Where(f => string.IsNullOrEmpty(settings.Name) || Path.GetFileNameWithoutExtension(f.Name) == settings.Name)
-      .Select(f => Path.Combine(f.Path, "regions", settings.Region, "versions", $"{settings.Version}.zip"))
-      .Where(f => File.Exists(f))
-      .Select(f => new FileInfo(f))
-      .ToList();
+    var files = GetFiles(settings);
     if (files.Count == 0) return ConsoleHelper.Warning($"No game files found in: {settings.ReadPath}");
 
-    var totalWork = FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame;
-    if (settings.Extract) {
-      totalWork += FileHelper.TotalExtractBytes(files);
-    }
-
-    var processedGames = 0;
-    var errors = new ConcurrentBag<string>();
-    await AnsiConsole.Progress()
-      .Columns(
-        new ProgressBarColumn(),
-        new PercentageColumn(),
-        new RemainingTimeColumn(),
-        new ElapsedTimeColumn())
-      .UseRenderHook((renderable, tasks) => ConsoleHelper.RenderHook(files.Count, settings, renderable, () => Volatile.Read(ref processedGames)))
-      .StartAsync(async ctx => {
-        var masterTask = ctx.AddTask(
-          $"Master",
-          autoStart: true,
-          maxValue: totalWork
-        );
-        var semaphore = new SemaphoreSlim(100);
-        var tasks = new List<Task>();
-
-        foreach (var file in files) {
-          var filePath = file.FullName;
-          var parts = filePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-          var name = parts[2].Split(" - ", 2)[1];
-          var displayName = name.Replace("_", ":");
-
-          tasks.Add(Task.Run(async () => {
-            await semaphore.WaitAsync();
-            await Export(file, name, settings, masterTask)
-              .Catch(ex => {
-                errors.Add($"[red]Error exporting {displayName}:[/] {ex.Message}");
-              })
-              .Finally(() => {
-                semaphore.Release();
-                Interlocked.Increment(ref processedGames);
-              });
-          }));
-        }
-
-        await Task.WhenAll(tasks);
-    });
-
-    if (!errors.IsEmpty) {
-      AnsiConsole.WriteLine();
-      foreach (var err in errors) AnsiConsole.MarkupLine(err);
-    }
+    await ConsoleHelper.Build(
+      files,
+      settings,
+      totalWork: FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame + (settings.Extract ? FileHelper.TotalExtractBytes(files) : 0),
+      maxConcurrency: 100,
+      processFile: (file, name, displayName, s, task) => Export(file, name, s, task),
+      getNames: file => {
+        var filePath = file.FullName;
+        var parts = filePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var name = parts[2].Split(" - ", 2)[1];
+        var displayName = name.Replace("_", ":");
+        return (name, displayName);
+      }
+    );
 
     return 0;
   }
@@ -122,5 +78,19 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
     if (overheadRemaining > 0) {
       progress.Increment(overheadRemaining);
     }
+  }
+
+  public List<FileInfo> GetFiles(ExportSettings settings) {
+    return Directory.EnumerateDirectories(settings.ReadPath)
+      .Where(f => Path.GetFileName(f).Contains(" - "))
+      .Select(f => new {
+        Path = f,
+        Name = f.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[2].Split(" - ", 2)[1]
+      })
+      .Where(f => string.IsNullOrEmpty(settings.Name) || Path.GetFileNameWithoutExtension(f.Name) == settings.Name)
+      .Select(f => Path.Combine(f.Path, "regions", settings.Region, "versions", $"{settings.Version}.zip"))
+      .Where(f => File.Exists(f))
+      .Select(f => new FileInfo(f))
+      .ToList();
   }
 }

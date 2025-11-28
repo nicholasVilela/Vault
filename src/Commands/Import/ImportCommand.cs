@@ -12,6 +12,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
 
   public override async Task<int> ExecuteAsync(CommandContext context, ImportSettings settings, CancellationToken _cancellationToken) {
     if (string.IsNullOrWhiteSpace(settings.Console)) return ConsoleHelper.Fail("--console is required");
+
     if (!Directory.Exists(settings.ReadPath)) return ConsoleHelper.Fail($"Path does not exist: {settings.ReadPath}");
 
     var clientId = Environment.GetEnvironmentVariable("IGDB_CLIENT_ID");
@@ -20,79 +21,38 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     var clientSecret = Environment.GetEnvironmentVariable("IGDB_CLIENT_SECRET");
     if (string.IsNullOrWhiteSpace(clientSecret)) return ConsoleHelper.Fail("Missing IGDB_CLIENT_SECRET environment variable.");
 
-    var files = Directory
-      .GetFiles(settings.ReadPath, "*.zip*")
-      .Where(f => settings.Name == null ? true : Path.GetFileNameWithoutExtension(f) == settings.Name)
-      .Select(f => new FileInfo(f))
-      .ToList();
+    var files = GetFiles(settings);
     if (files.Count == 0) return ConsoleHelper.Warning($"No game files found in: {settings.ReadPath}");
 
     using var igdb = new IgdbService(clientId, clientSecret);
 
-    var processedGames = 0;
-    var errors = new ConcurrentBag<string>();
-    var totalWork = FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame;
-    await AnsiConsole.Progress()
-      .Columns(
-        new ProgressBarColumn(),
-        new PercentageColumn(),
-        new RemainingTimeColumn(),
-        new ElapsedTimeColumn())
-      .UseRenderHook((renderable, tasks) => ConsoleHelper.RenderHook(files.Count, settings, renderable, () => Volatile.Read(ref processedGames)))
-      .StartAsync(async ctx => {
-        var masterTask = ctx.AddTask(
-          $"Master",
-          autoStart: true,
-          maxValue: totalWork
-        );
-
-        var semaphore = new SemaphoreSlim(8);
-        var tasks = new List<Task>();
-
-        foreach (var file in files) {
-          var filePath = file.FullName;
-          var fileNameNoExt = Path.GetFileNameWithoutExtension(filePath);
-          var displayName = fileNameNoExt.Replace("_", ":");
-
-          tasks.Add(Task.Run(async () => {
-            await semaphore.WaitAsync();
-            await Import(
-              file,
-              settings,
-              igdb,
-              masterTask)
-              .Catch(ex => {
-                errors.Add($"[red]Error processing {displayName}:[/] {ex.Message}");
-              })
-              .Finally(() => {
-                semaphore.Release();
-                Interlocked.Increment(ref processedGames);
-              });
-          }));
-        }
-
-        await Task.WhenAll(tasks);
-    });
-
-    if (!errors.IsEmpty) {
-      AnsiConsole.WriteLine();
-      foreach (var err in errors) AnsiConsole.MarkupLine(err);
-    }
+    await ConsoleHelper.Build(
+      files,
+      settings,
+      totalWork: FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame,
+      maxConcurrency: 100,
+      processFile: (file, name, displayName, s, task) => Import(file, name, displayName, s, task, igdb),
+      getNames: file => {
+        var filePath = file.FullName;
+        var fileNameNoExt = Path.GetFileNameWithoutExtension(filePath);
+        var displayName = fileNameNoExt.Replace("_", ":");
+        return (fileNameNoExt, displayName);
+      }
+    );
 
     return 0;
   }
 
   static async Task Import(
     FileInfo fileInfo,
+    string name,
+    string displayName,
     ImportSettings settings,
-    IgdbService igdb,
-    ProgressTask progress
+    ProgressTask progress,
+    IgdbService igdb
     ) {
     var filePath = fileInfo.FullName;
     var fileSize = fileInfo.Length;
-
-    var fileNameNoExt = Path.GetFileNameWithoutExtension(filePath);
-    var displayName = fileNameNoExt.Replace("_", ":");
 
     var overheadRemaining = OverheadUnitsPerGame;
 
@@ -124,7 +84,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     var screenshots = shotsTaskCall.Result;
 
     var gameCode = Encoder.Encode(game.Id);
-    var gameFolderName = gameCode + " - " + fileNameNoExt;
+    var gameFolderName = gameCode + " - " + name;
     var gameFolderPath = Path.Combine(settings.WritePath, gameFolderName);
     var regionFolderPath = Path.Combine(gameFolderPath, "regions", settings.Region);
     var versionsFolderPath = Path.Combine(regionFolderPath, "versions");
@@ -157,5 +117,13 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     if (overheadRemaining > 0) {
       progress.Increment(overheadRemaining);
     }
+  }
+
+  public List<FileInfo> GetFiles(ImportSettings settings ) {
+    return Directory
+      .GetFiles(settings.ReadPath, "*.zip*")
+      .Where(f => string.IsNullOrEmpty(settings.Name) || Path.GetFileNameWithoutExtension(f) == settings.Name)
+      .Select(f => new FileInfo(f))
+      .ToList();
   }
 }
