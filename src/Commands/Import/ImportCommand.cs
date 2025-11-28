@@ -29,7 +29,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     await ConsoleHelper.Build(
       files,
       settings,
-      totalWork: FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame,
+      totalWork: FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame * files.Count,
       maxConcurrency: 100,
       processFile: (file, name, displayName, s, task) => Import(file, name, displayName, s, task, igdb),
       getNames: file => {

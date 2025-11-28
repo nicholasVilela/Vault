@@ -25,6 +25,6 @@ public class BaseSettings : CommandSettings {
   public string Name { get; set; }
 
   [CommandOption("-p|--path")]
-  [Description("Drive, e.g. Z:/")]
-  public string Path { get; set; } = "Z:/";
+  [Description(@"Drive, e.g. Z:\")]
+  public string Path { get; set; } = @"Z:\";
 }

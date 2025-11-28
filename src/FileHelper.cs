@@ -35,7 +35,7 @@ public static class FileHelper {
     }
   }
 
-  public static void Extract(string zipPath, IProgress<long> progress = null) {
+  public static async Task Extract(string zipPath, IProgress<long> progress = null) {
     var outputDir = Path.GetDirectoryName(zipPath)!;
     var baseName  = Path.GetFileNameWithoutExtension(zipPath);
     string destPath;
@@ -65,8 +65,8 @@ public static class FileHelper {
 
     var buffer = new byte[81920];
     int read;
-    while ((read = entryStream.Read(buffer, 0, buffer.Length)) > 0) {
-      outStream.Write(buffer, 0, read);
+    while ((read = await entryStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
+      await outStream.WriteAsync(buffer, 0, read);
       progress?.Report(read);
     }
 

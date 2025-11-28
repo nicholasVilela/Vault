@@ -31,6 +31,10 @@ public static class ConsoleHelper {
         new Markup($"[yellow]{settings.Name ?? "*"}[/]")
       )
       .AddRow(
+        new Markup("[grey]Region:[/]"),
+        new Markup($"[yellow]{settings.Region}[/]")
+      )
+      .AddRow(
         new Markup("[grey]Version:[/]"),
         new Markup($"[yellow]{settings.Version}[/]")
       )
@@ -39,9 +43,13 @@ public static class ConsoleHelper {
         new Markup($"[green]{settings.WritePath}[/]")
       );
 
-    var header = new Panel(new Rows(renderable, grid)).RoundedBorder();
+    var bar = new Panel(new Rows(renderable)).RoundedBorder();
+    var header = new Panel(new Rows(grid)).RoundedBorder();
 
-    return new Rows(header);
+    bar.Width = 50;
+    header.Width = 50;
+
+    return new Rows(header, bar);
   }
 
   public static async Task Build<TSettings>(

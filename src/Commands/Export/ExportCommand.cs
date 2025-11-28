@@ -17,10 +17,14 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
     var files = GetFiles(settings);
     if (files.Count == 0) return ConsoleHelper.Warning($"No game files found in: {settings.ReadPath}");
 
+    var copyBytes = FileHelper.TotalCopyBytes(files);
+    var extractBytes = settings.Extract ? FileHelper.TotalExtractBytes(files) : 0;
+    var overheadBytes = OverheadUnitsPerGame * files.Count;
+
     await ConsoleHelper.Build(
       files,
       settings,
-      totalWork: FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame + (settings.Extract ? FileHelper.TotalExtractBytes(files) : 0),
+      totalWork: copyBytes + extractBytes + overheadBytes,
       maxConcurrency: 100,
       processFile: (file, name, displayName, s, task) => Export(file, name, s, task),
       getNames: file => {
@@ -35,49 +39,14 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
     return 0;
   }
 
-  private async Task Export(FileInfo file, string name, ExportSettings settings, ProgressTask progress) {
+  private async Task Export(FileInfo file, string name, ExportSettings settings, ProgressTask task) {
+    task.Increment(OverheadUnitsPerGame);
+
     Directory.CreateDirectory(settings.WritePath);
     
     var destPath = $"{settings.WritePath}/{name}.zip";
-
-    var fileSize = file.Length;
-
-    var overheadRemaining = OverheadUnitsPerGame;
-    var overheadStep = OverheadUnitsPerGame / 2;
-
-    progress.Increment(overheadStep);
-    overheadRemaining -= overheadStep;
-
-    var copiedBytes = 0L;
-    var copyProgress = new Progress<long>(bytes => {
-      if (bytes <= 0) return;
-      copiedBytes += bytes;
-      progress.Increment(bytes);
-    });
-    await FileHelper.Copy(file.FullName, destPath, copyProgress);
-    if (copiedBytes < fileSize) {
-      progress.Increment(fileSize - copiedBytes);
-    }
-
-
-    if (settings.Extract) {
-      var extractedBytes = 0L;
-      var extractProgress = new Progress<long>(bytes => {
-        if (bytes <= 0) return;
-        extractedBytes += bytes;
-        progress.Increment(bytes);
-      });
-      FileHelper.Extract(destPath, extractProgress);
-
-      var totalExtractBytes = FileHelper.ExtractBytes(file);
-      if (extractedBytes < totalExtractBytes) {
-        progress.Increment(totalExtractBytes - extractedBytes);
-      }
-    }
-
-    if (overheadRemaining > 0) {
-      progress.Increment(overheadRemaining);
-    }
+    await ProgressHelper.Build(task, file.Length, progress => FileHelper.Copy(file.FullName, destPath, progress));
+    if (settings.Extract) await ProgressHelper.Build(task, FileHelper.ExtractBytes(file), progress => FileHelper.Extract(destPath, progress));
   }
 
   public List<FileInfo> GetFiles(ExportSettings settings) {
