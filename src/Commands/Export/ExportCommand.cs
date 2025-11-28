@@ -19,12 +19,8 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
         Path = f,
         Name = f.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[2].Split(" - ", 2)[1]
       })
-      .Where(f => settings.Name == null ? true : Path.GetFileNameWithoutExtension(f.Name) == settings.Name)
-      .Select(f => f.Path)
-      .Select(f => Path.Combine(f, "regions"))
-      .Select(f => Path.Combine(f, settings.Region))
-      .Select(f => Path.Combine(f, "versions"))
-      .Select(f => Path.Combine(f, $"{settings.Version}.zip"))
+      .Where(f => string.IsNullOrEmpty(settings.Name) || Path.GetFileNameWithoutExtension(f.Name) == settings.Name)
+      .Select(f => Path.Combine(f.Path, "regions", settings.Region, "versions", $"{settings.Version}.zip"))
       .Where(f => File.Exists(f))
       .Select(f => new FileInfo(f))
       .ToList();
@@ -43,7 +39,7 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
         new PercentageColumn(),
         new RemainingTimeColumn(),
         new ElapsedTimeColumn())
-      .UseRenderHook((renderable, tasks) => RenderHook(files.Count, settings, renderable, () => Volatile.Read(ref processedGames)))
+      .UseRenderHook((renderable, tasks) => ConsoleHelper.RenderHook(files.Count, settings, renderable, () => Volatile.Read(ref processedGames)))
       .StartAsync(async ctx => {
         var masterTask = ctx.AddTask(
           $"Master",
@@ -126,42 +122,5 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
     if (overheadRemaining > 0) {
       progress.Increment(overheadRemaining);
     }
-  }
-
-  private static IRenderable RenderHook(int fileCount, ExportSettings settings, IRenderable renderable, Func<int> getProcessedGames) {
-    var gameLabel = fileCount == 1 ? "game" : "games";
-
-    var grid = new Grid();
-    grid.AddColumn(new GridColumn());
-    grid.AddColumn(new GridColumn());
-
-    grid.AddRow(
-      new Markup("[bold]Exported:[/]"),
-      new Markup($"[cyan]{getProcessedGames()}/{fileCount}[/] [green]{settings.Console}[/] {gameLabel}")
-    );
-
-    grid.AddRow(
-      new Markup("[grey]Name:[/]"),
-      new Markup($"[yellow]{settings.Name ?? "any"}[/]")
-    );
-
-    grid.AddRow(
-      new Markup("[grey]Region:[/]"),
-      new Markup($"[yellow]{settings.Region}[/]")
-    );
-
-    grid.AddRow(
-      new Markup("[grey]Version:[/]"),
-      new Markup($"[yellow]{settings.Version}[/]")
-    );
-
-    grid.AddRow(
-      new Markup("[grey]Destination:[/]"),
-      new Markup($"[green]{settings.WritePath}[/]")
-    );
-
-    var header = new Panel(new Rows(renderable, grid)).RoundedBorder();
-
-    return new Rows(header);
   }
 }

@@ -38,7 +38,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
         new PercentageColumn(),
         new RemainingTimeColumn(),
         new ElapsedTimeColumn())
-      .UseRenderHook((renderable, tasks) => RenderHook(files.Count, settings, renderable, () => Volatile.Read(ref processedGames)))
+      .UseRenderHook((renderable, tasks) => ConsoleHelper.RenderHook(files.Count, settings, renderable, () => Volatile.Read(ref processedGames)))
       .StartAsync(async ctx => {
         var masterTask = ctx.AddTask(
           $"Master",
@@ -157,43 +157,5 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     if (overheadRemaining > 0) {
       progress.Increment(overheadRemaining);
     }
-  }
-
-  private static IRenderable RenderHook(int fileCount, ImportSettings settings, IRenderable renderable, Func<int> getProcessedGames) {
-    var gameLabel = fileCount == 1 ? "game" : "games";
-
-    var grid = new Grid();
-    grid.AddColumn(new GridColumn());
-    grid.AddColumn(new GridColumn());
-
-    grid.AddRow(
-      new Markup("[bold]Imported:[/]"),
-      new Markup($"[cyan]{getProcessedGames()}/{fileCount}[/] [green]{settings.Console}[/] {gameLabel}")
-    );
-
-    grid.AddRow(
-      new Markup("[grey]Name:[/]"),
-      new Markup($"[yellow]{settings.Name ?? "any"}[/]")
-    );
-
-    grid.AddRow(
-      new Markup("[grey]Region:[/]"),
-      new Markup($"[yellow]{settings.Region}[/]")
-    );
-
-    grid.AddRow(
-      new Markup("[grey]Version:[/]"),
-      new Markup($"[yellow]{settings.Version}[/]")
-    );
-
-    grid.AddRow(
-      new Markup("[grey]Destination:[/]"),
-      new Markup($"[green]{settings.WritePath}[/]")
-    );
-
-    var header = new Panel(new Rows(renderable, grid)).RoundedBorder();
-    header.Padding(new Padding(0, 0, 0,0));
-
-    return new Rows(header);
   }
 }

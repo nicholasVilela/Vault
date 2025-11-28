@@ -7,8 +7,7 @@ public static class FileHelper {
   public static async Task Copy(
     string sourcePath,
     string destPath,
-    IProgress<long> progress = null,
-    CancellationToken cancellationToken = default
+    IProgress<long> progress = null
   ) {
     const int bufferSize = 81920;
     var buffer = new byte[bufferSize];
@@ -74,10 +73,6 @@ public static class FileHelper {
     archive.Dispose();
     File.Delete(zipPath);
   }
-
-  // public static long TotalBytes(List<string> files) {
-  //   return TotalCopyBytes(files) + TotalExtractBytes(files);
-  // }
 
   public static long TotalCopyBytes(List<FileInfo> files) {
     var totalCopyBytes = 0L;
