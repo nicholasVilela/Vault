@@ -10,6 +10,7 @@ class Program {
       config.SetApplicationName("vault");
       config.AddCommand<ImportCommand>("import");
       config.AddCommand<ExportCommand>("export");
+      config.AddCommand<InfoCommand>("info");
     });
 
     return app.Run(args);
