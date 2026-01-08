@@ -29,8 +29,7 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
       processFile: (file, name, displayName, s, task) => Export(file, name, s, task),
       getNames: file => {
         var filePath = file.FullName;
-        var parts = filePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var name = parts[2].Split(" - ", 2)[1];
+        var name = SplitPath(filePath);
         var displayName = name.Replace("_", ":");
         return (name, displayName);
       }
@@ -54,12 +53,16 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
       .Where(f => Path.GetFileName(f).Contains(" - "))
       .Select(f => new {
         Path = f,
-        Name = f.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[2].Split(" - ", 2)[1]
+        Name = SplitPath(f)
       })
       .Where(f => string.IsNullOrEmpty(settings.Name) || Path.GetFileNameWithoutExtension(f.Name) == settings.Name)
       .Select(f => Path.Combine(f.Path, "regions", settings.Region, "versions", $"{settings.Version}.zip"))
       .Where(f => File.Exists(f))
       .Select(f => new FileInfo(f))
       .ToList();
+  }
+
+  private string SplitPath(string value, int index = 3) {
+    return value.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[index].Split(" - ", 2)[1];
   }
 }
