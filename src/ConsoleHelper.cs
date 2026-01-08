@@ -52,6 +52,72 @@ public static class ConsoleHelper {
     return new Rows(header, bar);
   }
 
+  public static async Task Build<TSettings, TResult>(
+    List<FileInfo> files,
+    TSettings settings,
+    long totalWork,
+    int maxConcurrency,
+    Func<FileInfo, (string name, string displayName)> getNames,
+    Func<FileInfo, string, string, TSettings, ProgressTask, Task<TResult>> processFile,
+    Func<List<TResult>, Task> finalize
+  ) where TSettings : BaseSettings {
+    var processedGames = 0;
+    var errors = new ConcurrentBag<string>();
+    var results = new ConcurrentBag<TResult>();
+
+    await AnsiConsole.Progress()
+      .Columns(
+        new ProgressBarColumn(),
+        new PercentageColumn(),
+        new RemainingTimeColumn(),
+        new ElapsedTimeColumn())
+      .UseRenderHook((renderable, tasks) =>
+        RenderHook(
+          files.Count,
+          settings,
+          renderable,
+          () => Volatile.Read(ref processedGames)))
+      .StartAsync(async ctx => {
+        var masterTask = ctx.AddTask(
+          "Master",
+          autoStart: true,
+          maxValue: totalWork
+        );
+
+        var semaphore = new SemaphoreSlim(maxConcurrency);
+        var tasks = new List<Task>();
+
+        foreach (var file in files) {
+          var (name, displayName) = getNames(file);
+
+          tasks.Add(Task.Run(async () => {
+            await semaphore.WaitAsync();
+            var result = await processFile(file, name, displayName, settings, masterTask)
+              .Catch(ex => errors.Add($"[red]Error processing {displayName}:[/] {ex.Message}"))
+              .Finally(() => {
+                semaphore.Release();
+                Interlocked.Increment(ref processedGames);
+              });
+
+            if (result != null) results.Add(result);
+          }));
+        }
+
+        await Task.WhenAll(tasks);
+      });
+
+    if (!errors.IsEmpty) {
+      AnsiConsole.WriteLine();
+      foreach (var err in errors) {
+        AnsiConsole.MarkupLine(err);
+      }
+    }
+
+    if (finalize != null) {
+      await finalize(results.ToList());
+    }
+  }
+
   public static async Task Build<TSettings>(
     List<FileInfo> files,
     TSettings settings,

@@ -7,4 +7,8 @@ public class InfoSettings : BaseSettings {
   public override string Title => "Info";
   public override string ReadPath => @$"{Path}{Console}\ROMS";
   public override string DefaultDestination => @$"{Path}{Console}";
+
+  [CommandOption("--no-images")]
+  [Description("Do not download images.")]
+  public bool NoImages { get; set; }
 }

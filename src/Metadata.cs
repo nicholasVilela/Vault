@@ -1,8 +1,10 @@
 using System.Text;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace Vault;
 
-public static class Metadata {
+public static class MetadataHelper {
   public static string Build(
     string title,
     int gameId,
@@ -45,4 +47,25 @@ public static class Metadata {
     var metadataPath = Path.Combine(gameFolderPath, "metadata.yaml");
     await Write(Build(title, gameId, gameCode, platform, coverUrl, screenshots), metadataPath);
   }
+
+  public static Metadata Parse(FileInfo file) {
+    using var reader = file.OpenText();
+
+  var deserializer = new DeserializerBuilder()
+    .WithNamingConvention(UnderscoredNamingConvention.Instance)
+    .IgnoreUnmatchedProperties()
+    .Build();
+
+  return deserializer.Deserialize<Metadata>(reader);
+  }
+}
+
+public class Metadata {
+  public string Title { get; set; }
+  public MediaBlock Media { get; set; }
+}
+
+public sealed class MediaBlock {
+  public string Cover { get; set; }
+  public List<string> Screenshots { get; set; }
 }

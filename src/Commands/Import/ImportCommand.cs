@@ -104,7 +104,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       progress.Increment(fileSize - copiedForThisFile);
     }
 
-    Metadata.BuildAndWrite(
+    MetadataHelper.BuildAndWrite(
       game.Name,
       game.Id,
       gameCode,

@@ -11,11 +11,9 @@
       "preLaunchTask": "build",
       "program": "${workspaceFolder}/bin/Debug/net9.0/Vault.dll",
       "args": [
-        "export",
+        "info",
         "-c",
         "GBA",
-        "-n",
-        "Advance Wars"
       ],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
