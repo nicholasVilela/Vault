@@ -34,6 +34,9 @@ public class InfoCommand : AsyncCommand<InfoSettings> {
     using var writer = XmlWriter.Create(@$"{settings.DefaultDestination}\gamelist.xml", xmlSettings);
     writer.WriteStartElement("gameList");
 
+    var imagePath = @$"{settings.DefaultDestination}\IMAGES";
+    if (!settings.NoImages && !Directory.Exists(imagePath)) Directory.CreateDirectory(imagePath);
+
     using var http = new HttpClient();
 
     await ConsoleHelper.Build<InfoSettings, GameEntry>(

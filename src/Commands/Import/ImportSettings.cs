@@ -5,6 +5,6 @@ namespace Vault.Commands;
 
 public class ImportSettings : BaseSettings {
   public override string Title => "Imported";
-  public override string ReadPath => @$"{Path}{Console}\Games";
-  public override string DefaultDestination => $"{Path}{Console}";
+  public override string ReadPath => @$"{Path}{Console}\IMPORT";
+  public override string DefaultDestination => @$"{Path}{Console}\ROMS";
 }
