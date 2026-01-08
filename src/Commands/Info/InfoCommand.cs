@@ -39,7 +39,7 @@ public class InfoCommand : AsyncCommand<InfoSettings> {
     await ConsoleHelper.Build<InfoSettings, GameEntry>(
       files,
       settings,
-      totalWork: 0,
+      totalWork: files.Count,
       maxConcurrency: 100,
       processFile: (file, name, displayName, s, task) => Process(writer, http, file, name, displayName, s, task, igdb),
       getNames: file => {
@@ -78,6 +78,7 @@ public class InfoCommand : AsyncCommand<InfoSettings> {
     
     if (!settings.NoImages) await DownloadImages(http, metadata, name, settings);
 
+    progress.Increment(1);
     return new GameEntry(name, metadata);
   }
 
