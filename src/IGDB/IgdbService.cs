@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -11,6 +12,9 @@ public class IgdbService : IDisposable {
   private readonly string _clientSecret;
   private readonly HttpClient _httpClient;
   private string _accessToken;
+  readonly RequestLimiter _rate = new(4, TimeSpan.FromSeconds(1));
+  readonly SemaphoreSlim _concurrency = new(8);
+  readonly SemaphoreSlim _tokenLock = new(1, 1);
 
   private readonly ConcurrentDictionary<string, Lazy<Task<IgdbPlatform>>> _platformCache = new(StringComparer.OrdinalIgnoreCase);
 
@@ -22,24 +26,112 @@ public class IgdbService : IDisposable {
 
   public void Dispose() => _httpClient?.Dispose();
 
+  async Task<HttpResponseMessage> SendLimitedWithRetryAsync(
+    Func<HttpRequestMessage> createRequest,
+    int maxRetries = 5,
+    CancellationToken ct = default
+  ) {
+    for (var attempt = 0; ; attempt++) {
+      ct.ThrowIfCancellationRequested();
+
+      using var request = createRequest();
+
+      await _concurrency.WaitAsync(ct).ConfigureAwait(false);
+      try {
+        await _rate.WaitAsync(ct).ConfigureAwait(false);
+
+        HttpResponseMessage response = null;
+        try {
+          response = await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
+
+          if (response.StatusCode != (HttpStatusCode)429) return response;
+
+          if (attempt >= maxRetries) return response;
+
+          var delay = GetRetryDelay(response.Headers, attempt);
+          response.Dispose();
+
+          await Task.Delay(delay, ct).ConfigureAwait(false);
+          continue;
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested) {
+          if (attempt >= maxRetries) throw;
+          var delay = BackoffWithJitter(attempt);
+          await Task.Delay(delay, ct).ConfigureAwait(false);
+          continue;
+        }
+        catch (HttpRequestException) {
+          if (attempt >= maxRetries) throw;
+          var delay = BackoffWithJitter(attempt);
+          await Task.Delay(delay, ct).ConfigureAwait(false);
+          continue;
+        }
+      }
+      finally {
+        _concurrency.Release();
+      }
+    }
+  }
+
+  static TimeSpan GetRetryDelay(HttpResponseHeaders headers, int attempt) {
+    if (headers.RetryAfter != null) {
+      if (headers.RetryAfter.Delta.HasValue) {
+        var d = headers.RetryAfter.Delta.Value;
+        return d < TimeSpan.Zero ? TimeSpan.Zero : d;
+      }
+
+      if (headers.RetryAfter.Date.HasValue) {
+        var d = headers.RetryAfter.Date.Value - DateTimeOffset.UtcNow;
+        return d < TimeSpan.Zero ? TimeSpan.Zero : d;
+      }
+    }
+
+    return BackoffWithJitter(attempt);
+  }
+
+  static TimeSpan BackoffWithJitter(int attempt) {
+    var baseMs = 250 * Math.Pow(2, Math.Min(attempt, 6));
+    var jitterMs = Random.Shared.Next(0, 150);
+    return TimeSpan.FromMilliseconds(baseMs + jitterMs);
+  }
+
+  async Task<HttpResponseMessage> SendLimitedAsync(HttpRequestMessage request, CancellationToken ct = default) {
+    await _concurrency.WaitAsync(ct).ConfigureAwait(false);
+    try {
+      await _rate.WaitAsync(ct).ConfigureAwait(false);
+      return await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
+    }
+    finally {
+      _concurrency.Release();
+    }
+  }
+
   public async Task<string> GetTokenAsync() {
     if (!string.IsNullOrEmpty(_accessToken)) return _accessToken;
 
-    var url =
-      "https://id.twitch.tv/oauth2/token" +
-      "?client_id=" + _clientId +
-      "&client_secret=" + _clientSecret +
-      "&grant_type=client_credentials";
+    await _tokenLock.WaitAsync().ConfigureAwait(false);
+    try {
+      if (!string.IsNullOrEmpty(_accessToken)) return _accessToken;
 
-    using var request = new HttpRequestMessage(HttpMethod.Post, url);
-    using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
-    response.EnsureSuccessStatusCode();
+      var url =
+        "https://id.twitch.tv/oauth2/token" +
+        "?client_id=" + _clientId +
+        "&client_secret=" + _clientSecret +
+        "&grant_type=client_credentials";
 
-    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-    var token = JsonSerializer.Deserialize<IgdbTokenResponse>(json);
+      using var request = new HttpRequestMessage(HttpMethod.Post, url);
+      using var response = await SendLimitedAsync(request).ConfigureAwait(false);
+      response.EnsureSuccessStatusCode();
 
-    _accessToken = token.AccessToken;
-    return _accessToken;
+      var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+      var token = JsonSerializer.Deserialize<IgdbTokenResponse>(json);
+
+      _accessToken = token.AccessToken;
+      return _accessToken;
+    }
+    finally {
+      _tokenLock.Release();
+    }
   }
 
   public Task<IgdbPlatform> SearchConsole(string name) {
@@ -56,24 +148,26 @@ public class IgdbService : IDisposable {
   async Task<IgdbPlatform> SearchConsoleUncached(string name) {
     var token = await GetTokenAsync().ConfigureAwait(false);
 
-    var url = "https://api.igdb.com/v4/platforms";
-    using var request = new HttpRequestMessage(HttpMethod.Post, url);
-
     var queryName = name.Replace("\"", "\\\"").ToLowerInvariant();
 
-    request.Headers.Add("Client-ID", _clientId);
-    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-    request.Content = new StringContent(
-      $"""
-      fields id, name, slug;
-      where slug = "{queryName}";
-      limit 1;
-      """,
-      Encoding.UTF8,
-      "text/plain"
-    );
+    var make = () => {
+      var url = "https://api.igdb.com/v4/platforms";
+      var req = new HttpRequestMessage(HttpMethod.Post, url);
+      req.Headers.Add("Client-ID", _clientId);
+      req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+      req.Content = new StringContent(
+        $"""
+        fields id, name, slug;
+        where slug = "{queryName}";
+        limit 1;
+        """,
+        Encoding.UTF8,
+        "text/plain"
+      );
+      return req;
+    };
 
-    using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+    using var response = await SendLimitedWithRetryAsync(make).ConfigureAwait(false);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -89,24 +183,26 @@ public class IgdbService : IDisposable {
     var console = await SearchConsole(consoleName).ConfigureAwait(false);
     if (console == null) return null;
 
-    var url = "https://api.igdb.com/v4/games";
-    using var request = new HttpRequestMessage(HttpMethod.Post, url);
-
     var queryName = name.Replace("\"", "\\\"");
 
-    request.Headers.Add("Client-ID", _clientId);
-    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-    request.Content = new StringContent(
-      $"""
-      fields name, id, summary;
-      search "{queryName}";
-      where platforms = [{console.Id}];
-      """,
-      Encoding.UTF8,
-      "text/plain"
-    );
+    var make = () => {
+      var url = "https://api.igdb.com/v4/games";
+      var req = new HttpRequestMessage(HttpMethod.Post, url);
+      req.Headers.Add("Client-ID", _clientId);
+      req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+      req.Content = new StringContent(
+        $"""
+        fields name, id, summary;
+        search "{queryName}";
+        where platforms = [{console.Id}];
+        """,
+        Encoding.UTF8,
+        "text/plain"
+      );
+      return req;
+    };
 
-    using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+    using var response = await SendLimitedWithRetryAsync(make).ConfigureAwait(false);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -124,13 +220,12 @@ public class IgdbService : IDisposable {
   public async Task<(string coverUrl, List<string> screenshotUrls)> GetMediaAsync(int gameId, int screenshotLimit = 10) {
     var token = await GetTokenAsync().ConfigureAwait(false);
 
-    var url = "https://api.igdb.com/v4/multiquery";
-    using var request = new HttpRequestMessage(HttpMethod.Post, url);
-
-    request.Headers.Add("Client-ID", _clientId);
-    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-    request.Content = new StringContent(
+    var make = () => {
+      var url = "https://api.igdb.com/v4/multiquery";
+      var req = new HttpRequestMessage(HttpMethod.Post, url);
+      req.Headers.Add("Client-ID", _clientId);
+      req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+      req.Content = new StringContent(
       string.Format(
         """
         query covers "cover" {{
@@ -151,8 +246,10 @@ public class IgdbService : IDisposable {
       Encoding.UTF8,
       "text/plain"
     );
+      return req;
+    };
 
-    using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+    using var response = await SendLimitedWithRetryAsync(make).ConfigureAwait(false);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -191,18 +288,20 @@ public class IgdbService : IDisposable {
   public async Task<string> SearchCoverUrlAsync(int gameId) {
     var token = await GetTokenAsync().ConfigureAwait(false);
 
-    var url = "https://api.igdb.com/v4/covers";
-    using var request = new HttpRequestMessage(HttpMethod.Post, url);
+    var make = () => {
+      var url = "https://api.igdb.com/v4/games";
+      var req = new HttpRequestMessage(HttpMethod.Post, url);
+      req.Headers.Add("Client-ID", _clientId);
+      req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+      req.Content = new StringContent(
+        "fields url;\nwhere game = " + gameId + ";",
+        Encoding.UTF8,
+        "text/plain"
+      );
+      return req;
+    };
 
-    request.Headers.Add("Client-ID", _clientId);
-    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-    request.Content = new StringContent(
-      "fields url;\nwhere game = " + gameId + ";",
-      Encoding.UTF8,
-      "text/plain"
-    );
-
-    using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+    using var response = await SendLimitedWithRetryAsync(make).ConfigureAwait(false);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -216,18 +315,20 @@ public class IgdbService : IDisposable {
   public async Task<List<string>> SearchScreenshotUrlsAsync(int gameId) {
     var token = await GetTokenAsync().ConfigureAwait(false);
 
-    var url = "https://api.igdb.com/v4/screenshots";
-    using var request = new HttpRequestMessage(HttpMethod.Post, url);
+    var make = () => {
+      var url = "https://api.igdb.com/v4/screenshots";
+      var req = new HttpRequestMessage(HttpMethod.Post, url);
+      req.Headers.Add("Client-ID", _clientId);
+      req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+      req.Content = new StringContent(
+        "fields url;\nwhere game = " + gameId + ";",
+        Encoding.UTF8,
+        "text/plain"
+      );
+      return req;
+    };
 
-    request.Headers.Add("Client-ID", _clientId);
-    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-    request.Content = new StringContent(
-      "fields url;\nwhere game = " + gameId + ";",
-      Encoding.UTF8,
-      "text/plain"
-    );
-
-    using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+    using var response = await SendLimitedWithRetryAsync(make).ConfigureAwait(false);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);

@@ -1,4 +1,5 @@
 using System.Text;
+using Spectre.Console;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -48,6 +49,10 @@ public static class MetadataHelper {
     List<string> screenshots,
     string gameFolderPath
   ) {
+    if (!Path.Exists(gameFolderPath)) {
+      AnsiConsole.MarkupLine($"[yellow]No path found for:[/] {gameFolderPath}");
+      return;
+    }
     var metadataPath = Path.Combine(gameFolderPath, "metadata.yaml");
     await Write(Build(title, gameId, gameCode, platform, summary, coverUrl, screenshots), metadataPath);
   }
