@@ -9,8 +9,8 @@ using Vault.IGDB;
 
 namespace Vault.Commands;
 
-public class InfoCommand : AsyncCommand<InfoSettings> {
-  public override async Task<int> ExecuteAsync(CommandContext context, InfoSettings settings, CancellationToken _cancellationToken) {
+public class GameListCommand : AsyncCommand<GameListSettings> {
+  public override async Task<int> ExecuteAsync(CommandContext context, GameListSettings settings, CancellationToken _cancellationToken) {
     if (string.IsNullOrWhiteSpace(settings.Console)) return ConsoleHelper.Fail("--console is required");
 
     if (!Directory.Exists(settings.ReadPath)) return ConsoleHelper.Fail($"Path does not exist: {settings.ReadPath}");
@@ -72,7 +72,7 @@ public class InfoCommand : AsyncCommand<InfoSettings> {
     HttpClient http,
     FileInfo fileInfo,
     string fileName,
-    InfoSettings settings,
+    GameListSettings settings,
     ProgressTask progress
   ) {
     var metadata = MetadataHelper.Parse(fileInfo);
@@ -83,7 +83,7 @@ public class InfoCommand : AsyncCommand<InfoSettings> {
     return new GameEntry(fileName, metadata);
   }
 
-  private async Task DownloadImages(HttpClient http, Metadata metadata, string name, InfoSettings settings) {
+  private async Task DownloadImages(HttpClient http, Metadata metadata, string name, GameListSettings settings) {
     var url = "https:" + metadata.Media.Cover;
     
     var imagesDir = Path.Combine(settings.DefaultDestination, "IMAGES");
@@ -99,7 +99,7 @@ public class InfoCommand : AsyncCommand<InfoSettings> {
     await src.CopyToAsync(dst);
   }
 
-  public List<FileInfo> GetFiles(InfoSettings settings) {
+  public List<FileInfo> GetFiles(GameListSettings settings) {
     var result = new List<FileInfo>();
 
     foreach (var gameDir in Directory.EnumerateDirectories(settings.ReadPath)) {

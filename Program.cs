@@ -10,7 +10,7 @@ class Program {
       config.SetApplicationName("vault");
       config.AddCommand<ImportCommand>("import");
       config.AddCommand<ExportCommand>("export");
-      config.AddCommand<InfoCommand>("info");
+      config.AddCommand<GameListCommand>("gamelist");
       config.AddCommand<MetadataCommand>("metadata");
     });
 
