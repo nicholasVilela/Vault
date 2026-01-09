@@ -11,9 +11,9 @@
       "preLaunchTask": "build",
       "program": "${workspaceFolder}/bin/Debug/net9.0/Vault.dll",
       "args": [
-        "metadata",
+        "info",
         "-c",
-        "3DS",
+        "GBA",
       ],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",

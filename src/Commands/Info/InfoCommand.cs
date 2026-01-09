@@ -44,7 +44,7 @@ public class InfoCommand : AsyncCommand<InfoSettings> {
       settings,
       totalWork: files.Count,
       maxConcurrency: 100,
-      processFile: (file, name, displayName, task) => Process(http, file, displayName, settings, task),
+      processFile: (file, fileName, displayName, task) => Process(http, file, fileName, settings, task),
       getNames: file => {
         var filePath = file.FullName;
         var name = SplitPath(filePath);
@@ -71,16 +71,16 @@ public class InfoCommand : AsyncCommand<InfoSettings> {
   public async Task<GameEntry> Process(
     HttpClient http,
     FileInfo fileInfo,
-    string name,
+    string fileName,
     InfoSettings settings,
     ProgressTask progress
   ) {
     var metadata = MetadataHelper.Parse(fileInfo);
     
-    if (!settings.NoImages) await DownloadImages(http, metadata, name, settings);
+    if (!settings.NoImages) await DownloadImages(http, metadata, fileName, settings);
 
     progress.Increment(1);
-    return new GameEntry(name, metadata);
+    return new GameEntry(fileName, metadata);
   }
 
   private async Task DownloadImages(HttpClient http, Metadata metadata, string name, InfoSettings settings) {
