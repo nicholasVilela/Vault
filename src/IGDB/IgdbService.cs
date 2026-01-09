@@ -39,16 +39,51 @@ public class IgdbService : IDisposable {
     return _accessToken;
   }
 
-  public async Task<IgdbGame> SearchGameAsync(string name) {
+  public async Task<IgdbPlatform> SearchConsole(string name) {
+    var token = await GetTokenAsync().ConfigureAwait(false);
+
+    var url = "https://api.igdb.com/v4/platforms";
+    using var request = new HttpRequestMessage(HttpMethod.Post, url);
+
+    var queryName = name.Replace("\"", "\\\"").ToLower();
+
+    request.Headers.Add("Client-ID", _clientId);
+    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    request.Content = new StringContent(
+      $"""
+      fields id;
+      where slug = "{queryName}";
+      """,
+      Encoding.UTF8,
+      "text/plain"
+    );
+
+    using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+    response.EnsureSuccessStatusCode();
+
+    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+    var console = JsonSerializer.Deserialize<List<IgdbPlatform>>(json)[0]; // Defaulting to first item found, but this should be updated to allow user to choose
+
+    return console;
+  }
+
+  public async Task<IgdbGame> SearchGameAsync(string name, string consoleName) {
     var token = await GetTokenAsync().ConfigureAwait(false);
 
     var url = "https://api.igdb.com/v4/games";
     using var request = new HttpRequestMessage(HttpMethod.Post, url);
 
+    var queryName = name.Replace("\"", "\\\"");
+    var console = await SearchConsole(consoleName);
+
     request.Headers.Add("Client-ID", _clientId);
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
     request.Content = new StringContent(
-      "fields name, id;\nwhere name = \"" + name.Replace("\"", "\\\"") + "\";",
+      $"""
+      fields name, id, summary;
+      search "{queryName}";
+      where platforms = [{console.Id}];
+      """,
       Encoding.UTF8,
       "text/plain"
     );

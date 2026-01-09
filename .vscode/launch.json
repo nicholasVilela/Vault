@@ -11,9 +11,9 @@
       "preLaunchTask": "build",
       "program": "${workspaceFolder}/bin/Debug/net9.0/Vault.dll",
       "args": [
-        "info",
+        "import",
         "-c",
-        "GBA",
+        "SNES",
       ],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",

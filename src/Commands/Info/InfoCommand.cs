@@ -56,6 +56,7 @@ public class InfoCommand : AsyncCommand<InfoSettings> {
           writer.WriteStartElement("game");
           writer.WriteElementString("path", $"./{entry.Name}.gba");
           writer.WriteElementString("name", entry.Metadata.Title);
+          writer.WriteElementString("desc", entry.Metadata.Summary);
           writer.WriteElementString("image", $"./IMAGES/{entry.Name}.jpg");
           writer.WriteEndElement();
         }

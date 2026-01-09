@@ -10,6 +10,7 @@ public static class MetadataHelper {
     int gameId,
     string gameCode,
     string platform,
+    string summary,
     string coverUrl,
     List<string> screenshots) {
     var sb = new StringBuilder();
@@ -20,6 +21,7 @@ public static class MetadataHelper {
     sb.AppendLine("game_id: " + gameId);
     sb.AppendLine("game_code: " + gameCode);
     sb.AppendLine("platform: " + platform);
+    sb.AppendLine("summary: " + summary);
     sb.AppendLine("media:");
     sb.AppendLine("  cover: " + (coverUrl ?? "''"));
     sb.AppendLine("  screenshots:");
@@ -40,12 +42,13 @@ public static class MetadataHelper {
     int gameId,
     string gameCode,
     string platform,
+    string summary,
     string coverUrl,
     List<string> screenshots,
     string gameFolderPath
   ) {
     var metadataPath = Path.Combine(gameFolderPath, "metadata.yaml");
-    await Write(Build(title, gameId, gameCode, platform, coverUrl, screenshots), metadataPath);
+    await Write(Build(title, gameId, gameCode, platform, summary, coverUrl, screenshots), metadataPath);
   }
 
   public static Metadata Parse(FileInfo file) {
@@ -62,6 +65,7 @@ public static class MetadataHelper {
 
 public class Metadata {
   public string Title { get; set; }
+  public string Summary { get; set; }
   public MediaBlock Media { get; set; }
 }
 

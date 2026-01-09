@@ -8,4 +8,7 @@ public class IgdbGame {
   
   [JsonPropertyName("name")]
   public string Name { get; set; }
+
+  [JsonPropertyName("summary")]
+  public string Summary { get; set; }
 }

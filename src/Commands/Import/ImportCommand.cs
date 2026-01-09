@@ -56,7 +56,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
 
     var overheadRemaining = OverheadUnitsPerGame;
 
-    var game = await igdb.SearchGameAsync(displayName);
+    var game = await igdb.SearchGameAsync(displayName, settings.Console);
 
     if (game == null) {
       AnsiConsole.MarkupLine($"[yellow]No IGDB match for:[/] {displayName}");
@@ -111,6 +111,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       game.Id,
       gameCode,
       settings.Console,
+      game.Summary,
       coverUrl,
       screenshots,
       gameFolderPath
