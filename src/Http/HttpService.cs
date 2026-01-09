@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using Vault.IGDB;
 
-namespace Vault;
+namespace Vault.Http;
 
 public sealed class HttpService : IDisposable {
   private readonly HttpClient _client;

@@ -3,6 +3,7 @@ using System.IO.Compression;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
+using Vault.Helpers;
 
 namespace Vault.Commands;
 

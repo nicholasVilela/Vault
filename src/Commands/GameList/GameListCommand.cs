@@ -27,14 +27,11 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
     var files = GetFiles(settings);
     if (files.Count == 0) return ConsoleHelper.Warning($"No game files found in: {settings.ReadPath}");
 
-    using var igdb = new IgdbService(clientId, clientSecret);
-
-    var xmlSettings = new XmlWriterSettings {
+    using var writer = XmlWriter.Create(@$"{settings.DefaultDestination}\gamelist.xml", new XmlWriterSettings {
       Indent = true,
       OmitXmlDeclaration = true,
       ConformanceLevel = ConformanceLevel.Document
-    };
-    using var writer = XmlWriter.Create(@$"{settings.DefaultDestination}\gamelist.xml", xmlSettings);
+    });
     writer.WriteStartElement("gameList");
 
     var imagePath = @$"{settings.DefaultDestination}\IMAGES";
