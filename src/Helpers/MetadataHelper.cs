@@ -1,9 +1,10 @@
 using System.Text;
 using Spectre.Console;
+using Vault.Data;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace Vault;
+namespace Vault.Helper;
 
 public static class MetadataHelper {
   public static string Build(
@@ -66,19 +67,5 @@ public static class MetadataHelper {
     .Build();
 
   return deserializer.Deserialize<Metadata>(reader);
-  }
-}
-
-public class Metadata {
-  public string Title { get; set; }
-  public int GameId { get; set; }
-  public string GameCode { get; set; }
-  public string Platform { get; set; }
-  public string Summary { get; set; }
-  public MediaBlock Media { get; set; }
-
-  public class MediaBlock {
-    public string Cover { get; set; }
-    public List<string> Screenshots { get; set; }
   }
 }

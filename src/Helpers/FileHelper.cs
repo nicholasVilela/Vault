@@ -1,7 +1,7 @@
 using System.IO.Compression;
 using Spectre.Console;
 
-namespace Vault;
+namespace Vault.Helpers;
 
 public static class FileHelper {
   const int BufferSize = 81920;

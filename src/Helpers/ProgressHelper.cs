@@ -1,6 +1,6 @@
 using Spectre.Console;
 
-namespace Vault;
+namespace Vault.Helpers;
 
 public static class ProgressHelper {
   public static async Task Build(ProgressTask task, long total, Func<IProgress<long>, Task> operation) {

@@ -2,8 +2,9 @@ using System.Collections.Concurrent;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using Vault.Commands;
+using Vault.Extensions;
 
-namespace Vault;
+namespace Vault.Helpers;
 
 public static class ConsoleHelper {
   public static int Fail(string text) {
