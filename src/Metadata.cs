@@ -12,25 +12,26 @@ public static class MetadataHelper {
     string platform,
     string summary,
     string coverUrl,
-    List<string> screenshots) {
-    var sb = new StringBuilder();
+    List<string> screenshots
+    ) {
+    var meta = new Metadata {
+      Title = title.Replace("'", "''"),
+      GameId = gameId,
+      GameCode = gameCode,
+      Platform = platform,
+      Summary = summary,
+      Media = new Metadata.MediaBlock {
+        Cover = coverUrl,
+        Screenshots = screenshots,
+      },
+    };
 
-    var safeTitle = title.Replace("'", "''");
+    var serializer = new SerializerBuilder()
+    .WithNamingConvention(CamelCaseNamingConvention.Instance)
+    .Build();
 
-    sb.AppendLine("title: '" + safeTitle + "'");
-    sb.AppendLine("game_id: " + gameId);
-    sb.AppendLine("game_code: " + gameCode);
-    sb.AppendLine("platform: " + platform);
-    sb.AppendLine("summary: " + summary);
-    sb.AppendLine("media:");
-    sb.AppendLine("  cover: " + (coverUrl ?? "''"));
-    sb.AppendLine("  screenshots:");
-
-    if (screenshots != null && screenshots.Count > 0) {
-      foreach (var s in screenshots) sb.AppendLine("  - " + s);
-    }
-
-    return sb.ToString();
+    var yaml = serializer.Serialize(meta);
+    return yaml;
   }
 
   public static async Task Write(string yaml, string metadataPath) {
@@ -65,11 +66,14 @@ public static class MetadataHelper {
 
 public class Metadata {
   public string Title { get; set; }
+  public int GameId { get; set; }
+  public string GameCode { get; set; }
+  public string Platform { get; set; }
   public string Summary { get; set; }
   public MediaBlock Media { get; set; }
-}
 
-public sealed class MediaBlock {
-  public string Cover { get; set; }
-  public List<string> Screenshots { get; set; }
+  public class MediaBlock {
+    public string Cover { get; set; }
+    public List<string> Screenshots { get; set; }
+  }
 }

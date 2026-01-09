@@ -11,6 +11,7 @@ class Program {
       config.AddCommand<ImportCommand>("import");
       config.AddCommand<ExportCommand>("export");
       config.AddCommand<InfoCommand>("info");
+      config.AddCommand<MetadataCommand>("metadata");
     });
 
     return app.Run(args);

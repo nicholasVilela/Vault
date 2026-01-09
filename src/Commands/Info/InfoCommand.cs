@@ -44,7 +44,7 @@ public class InfoCommand : AsyncCommand<InfoSettings> {
       settings,
       totalWork: files.Count,
       maxConcurrency: 100,
-      processFile: (file, name, displayName, s, task) => Process(http, file, displayName, s, task),
+      processFile: (file, name, displayName, task) => Process(http, file, displayName, settings, task),
       getNames: file => {
         var filePath = file.FullName;
         var name = SplitPath(filePath);
