@@ -36,12 +36,12 @@ public class InfoCommand : AsyncCommand<InfoSettings> {
 
     using var http = new HttpClient();
 
-    await ConsoleHelper.Build<InfoSettings, GameEntry>(
+    await ConsoleHelper.Build(
       files,
       settings,
       totalWork: files.Count,
       maxConcurrency: 100,
-      processFile: (file, name, displayName, s, task) => Process(writer, http, file, name, displayName, s, task, igdb),
+      processFile: (file, name, displayName, s, task) => Process(http, file, displayName, s, task),
       getNames: file => {
         var filePath = file.FullName;
         var name = SplitPath(filePath);
@@ -65,14 +65,11 @@ public class InfoCommand : AsyncCommand<InfoSettings> {
   }
 
   public async Task<GameEntry> Process(
-    XmlWriter writer,
     HttpClient http,
     FileInfo fileInfo,
     string name,
-    string displayName,
     InfoSettings settings,
-    ProgressTask progress,
-    IgdbService igdb
+    ProgressTask progress
   ) {
     var metadata = MetadataHelper.Parse(fileInfo);
     

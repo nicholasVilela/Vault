@@ -124,7 +124,7 @@ public static class ConsoleHelper {
     long totalWork,
     int maxConcurrency,
     Func<FileInfo, (string name, string displayName)> getNames,
-    Func<FileInfo, string, string, TSettings, ProgressTask, Task> processFile
+    Func<FileInfo, string, string, ProgressTask, Task> processFile
   ) where TSettings : BaseSettings {
     var processedGames = 0;
     var errors = new ConcurrentBag<string>();
@@ -156,7 +156,7 @@ public static class ConsoleHelper {
 
           tasks.Add(Task.Run(async () => {
             await semaphore.WaitAsync();
-            await processFile(file, name, displayName, settings, masterTask)
+            await processFile(file, name, displayName, masterTask)
               .Catch(ex => errors.Add($"[red]Error processing {displayName}:[/] {ex.Message}"))
               .Finally(() => {
                 semaphore.Release();

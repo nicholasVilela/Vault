@@ -26,7 +26,7 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
       settings,
       totalWork: copyBytes + extractBytes + overheadBytes,
       maxConcurrency: 100,
-      processFile: (file, name, displayName, s, task) => Export(file, name, s, task),
+      processFile: (file, name, displayName, task) => Export(file, name, settings, task),
       getNames: file => {
         var filePath = file.FullName;
         var name = SplitPath(filePath);

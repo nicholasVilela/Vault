@@ -4,13 +4,14 @@ using Spectre.Console;
 namespace Vault;
 
 public static class FileHelper {
+  const int BufferSize = 81920;
+
   public static async Task Copy(
     string sourcePath,
     string destPath,
     IProgress<long> progress = null
   ) {
-    const int bufferSize = 81920;
-    var buffer = new byte[bufferSize];
+    var buffer = new byte[BufferSize];
 
     await using var source = new FileStream(
       sourcePath,
@@ -41,15 +42,7 @@ public static class FileHelper {
     string destPath;
 
     using var archive = ZipFile.OpenRead(zipPath);
-
-    var entry = archive.Entries
-      .FirstOrDefault(e =>
-        !string.IsNullOrWhiteSpace(e.Name) &&
-        !e.FullName.EndsWith("/") &&
-        !e.FullName.EndsWith(@"\")
-      );
-
-    if (entry == null) throw new InvalidOperationException($"ZIP '{zipPath}' contains no files.");
+    var entry = GetZipEntry(archive, zipPath);
 
     destPath = Path.Combine(
         outputDir,
@@ -63,7 +56,7 @@ public static class FileHelper {
       FileShare.None
     );
 
-    var buffer = new byte[81920];
+    var buffer = new byte[BufferSize];
     int read;
     while ((read = await entryStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
       await outStream.WriteAsync(buffer, 0, read);
@@ -74,30 +67,8 @@ public static class FileHelper {
     File.Delete(zipPath);
   }
 
-  public static long TotalCopyBytes(List<FileInfo> files) {
-    var totalCopyBytes = 0L;
-    foreach (var file in files) {
-      totalCopyBytes += file.Length;
-    }
-
-    return totalCopyBytes;
-  }
-
-  public static long TotalExtractBytes(List<FileInfo> files) {
-    var totalExtractBytes = 0L;
-    foreach (var zipPath in files) {
-      using var archive = ZipFile.OpenRead(zipPath.FullName);
-      var entry = archive.Entries
-        .FirstOrDefault(e =>
-          !string.IsNullOrWhiteSpace(e.Name) &&
-          !e.FullName.EndsWith("/") &&
-          !e.FullName.EndsWith(@"\")
-        );
-      if (entry != null) totalExtractBytes += entry.Length;
-    }
-
-    return totalExtractBytes;
-  }
+  public static long TotalCopyBytes(List<FileInfo> files) => files.Sum(f => f.Length);
+  public static long TotalExtractBytes(List<FileInfo> files) => files.Sum(ExtractBytes);
 
   public static long ExtractBytes(FileInfo file) {
     var totalExtractBytes = 0L;
@@ -111,5 +82,30 @@ public static class FileHelper {
     if (entry != null) totalExtractBytes += entry.Length;
 
     return totalExtractBytes;
+  }
+
+  private static ZipArchiveEntry GetZipEntry(ZipArchive archive, string zipPath) {
+    var entry = archive.Entries
+      .FirstOrDefault(e =>
+        !string.IsNullOrWhiteSpace(e.Name) &&
+        !e.FullName.EndsWith("/") &&
+        !e.FullName.EndsWith(@"\")
+      );
+
+    if (entry == null) throw new InvalidOperationException($"ZIP '{zipPath}' contains no files.");
+
+    return entry;
+  }
+
+  public static void Move(
+    string sourcePath,
+    string destPath,
+    IProgress<long> progress = null
+  ) {
+    var sourceInfo = new FileInfo(sourcePath);
+    var totalBytes = sourceInfo.Length;
+
+    File.Move(sourcePath, destPath);
+    progress?.Report(totalBytes);
   }
 }

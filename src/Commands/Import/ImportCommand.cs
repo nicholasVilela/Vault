@@ -31,7 +31,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       settings,
       totalWork: FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame * files.Count,
       maxConcurrency: 100,
-      processFile: (file, name, displayName, s, task) => Import(file, name, displayName, s, task, igdb),
+      processFile: (file, name, displayName, task) => Import(file, name, displayName, settings, task, igdb),
       getNames: file => {
         var filePath = file.FullName;
         var fileNameNoExt = Path.GetFileNameWithoutExtension(filePath);
@@ -98,7 +98,9 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       copiedForThisFile += bytes;
       progress.Increment(bytes);
     });
-    await FileHelper.Copy(filePath, versionFilePath, copyProgress);
+
+    if (settings.Move) FileHelper.Move(filePath, versionFilePath, copyProgress);
+    else await FileHelper.Copy(filePath, versionFilePath, copyProgress);
 
     if (copiedForThisFile < fileSize) {
       progress.Increment(fileSize - copiedForThisFile);
