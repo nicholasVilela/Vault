@@ -13,9 +13,9 @@ public sealed class RequestLimiter {
 
   readonly object _gate = new();
 
-  public RequestLimiter(int limit, TimeSpan window) {
+  public RequestLimiter(int limit, float time) {
     _limit = limit;
-    _window = window;
+    _window = TimeSpan.FromSeconds(time);
     _windowStartTicks = DateTime.UtcNow.Ticks;
   }
 

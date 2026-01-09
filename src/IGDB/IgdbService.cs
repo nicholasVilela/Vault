@@ -7,104 +7,22 @@ using System.Text.Json;
 
 namespace Vault.IGDB;
 
-public class IgdbService : IDisposable {
+public class IgdbService : IDisposable{
   private readonly string _clientId;
   private readonly string _clientSecret;
-  private readonly HttpClient _httpClient;
   private string _accessToken;
-  readonly RequestLimiter _rate = new(4, TimeSpan.FromSeconds(1));
-  readonly SemaphoreSlim _concurrency = new(8);
   readonly SemaphoreSlim _tokenLock = new(1, 1);
+  private HttpService _httpSvc;
 
   private readonly ConcurrentDictionary<string, Lazy<Task<IgdbPlatform>>> _platformCache = new(StringComparer.OrdinalIgnoreCase);
 
-  public IgdbService(string clientId, string clientSecret, HttpClient httpClient = null) {
+  public IgdbService(string clientId, string clientSecret) {
+    _httpSvc = new HttpService(4, 1, 8);
     _clientId = clientId;
     _clientSecret = clientSecret;
-    _httpClient = httpClient ?? new HttpClient();
   }
 
-  public void Dispose() => _httpClient?.Dispose();
-
-  async Task<HttpResponseMessage> SendLimitedWithRetryAsync(
-    Func<HttpRequestMessage> createRequest,
-    int maxRetries = 5,
-    CancellationToken ct = default
-  ) {
-    for (var attempt = 0; ; attempt++) {
-      ct.ThrowIfCancellationRequested();
-
-      using var request = createRequest();
-
-      await _concurrency.WaitAsync(ct).ConfigureAwait(false);
-      try {
-        await _rate.WaitAsync(ct).ConfigureAwait(false);
-
-        HttpResponseMessage response = null;
-        try {
-          response = await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
-
-          if (response.StatusCode != (HttpStatusCode)429) return response;
-
-          if (attempt >= maxRetries) return response;
-
-          var delay = GetRetryDelay(response.Headers, attempt);
-          response.Dispose();
-
-          await Task.Delay(delay, ct).ConfigureAwait(false);
-          continue;
-        }
-        catch (TaskCanceledException) when (!ct.IsCancellationRequested) {
-          if (attempt >= maxRetries) throw;
-          var delay = BackoffWithJitter(attempt);
-          await Task.Delay(delay, ct).ConfigureAwait(false);
-          continue;
-        }
-        catch (HttpRequestException) {
-          if (attempt >= maxRetries) throw;
-          var delay = BackoffWithJitter(attempt);
-          await Task.Delay(delay, ct).ConfigureAwait(false);
-          continue;
-        }
-      }
-      finally {
-        _concurrency.Release();
-      }
-    }
-  }
-
-  static TimeSpan GetRetryDelay(HttpResponseHeaders headers, int attempt) {
-    if (headers.RetryAfter != null) {
-      if (headers.RetryAfter.Delta.HasValue) {
-        var d = headers.RetryAfter.Delta.Value;
-        return d < TimeSpan.Zero ? TimeSpan.Zero : d;
-      }
-
-      if (headers.RetryAfter.Date.HasValue) {
-        var d = headers.RetryAfter.Date.Value - DateTimeOffset.UtcNow;
-        return d < TimeSpan.Zero ? TimeSpan.Zero : d;
-      }
-    }
-
-    return BackoffWithJitter(attempt);
-  }
-
-  static TimeSpan BackoffWithJitter(int attempt) {
-    var baseMs = 250 * Math.Pow(2, Math.Min(attempt, 6));
-    var jitterMs = Random.Shared.Next(0, 150);
-    return TimeSpan.FromMilliseconds(baseMs + jitterMs);
-  }
-
-  async Task<HttpResponseMessage> SendLimitedAsync(HttpRequestMessage request, CancellationToken ct = default) {
-    await _concurrency.WaitAsync(ct).ConfigureAwait(false);
-    try {
-      await _rate.WaitAsync(ct).ConfigureAwait(false);
-      return await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
-    }
-    finally {
-      _concurrency.Release();
-    }
-  }
+  public void Dispose() => _httpSvc.Dispose();
 
   public async Task<string> GetTokenAsync() {
     if (!string.IsNullOrEmpty(_accessToken)) return _accessToken;
@@ -113,14 +31,13 @@ public class IgdbService : IDisposable {
     try {
       if (!string.IsNullOrEmpty(_accessToken)) return _accessToken;
 
-      var url =
-        "https://id.twitch.tv/oauth2/token" +
-        "?client_id=" + _clientId +
-        "&client_secret=" + _clientSecret +
-        "&grant_type=client_credentials";
+      var make = () => {
+        var url = $"https://id.twitch.tv/oauth2/token?client_id={_clientId}&client_secret={_clientSecret}&grant_type=client_credentials";
+        var req = new HttpRequestMessage(HttpMethod.Post, url);
+        return req;
+      };
 
-      using var request = new HttpRequestMessage(HttpMethod.Post, url);
-      using var response = await SendLimitedAsync(request).ConfigureAwait(false);
+      using var response = await _httpSvc.SendLimitedAsync(make).ConfigureAwait(false);
       response.EnsureSuccessStatusCode();
 
       var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -167,7 +84,7 @@ public class IgdbService : IDisposable {
       return req;
     };
 
-    using var response = await SendLimitedWithRetryAsync(make).ConfigureAwait(false);
+    using var response = await _httpSvc.SendLimitedAsync(make).ConfigureAwait(false);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -202,7 +119,7 @@ public class IgdbService : IDisposable {
       return req;
     };
 
-    using var response = await SendLimitedWithRetryAsync(make).ConfigureAwait(false);
+    using var response = await _httpSvc.SendLimitedAsync(make).ConfigureAwait(false);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -249,7 +166,7 @@ public class IgdbService : IDisposable {
       return req;
     };
 
-    using var response = await SendLimitedWithRetryAsync(make).ConfigureAwait(false);
+    using var response = await _httpSvc.SendLimitedAsync(make).ConfigureAwait(false);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -301,7 +218,7 @@ public class IgdbService : IDisposable {
       return req;
     };
 
-    using var response = await SendLimitedWithRetryAsync(make).ConfigureAwait(false);
+    using var response = await _httpSvc.SendLimitedAsync(make).ConfigureAwait(false);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -328,7 +245,7 @@ public class IgdbService : IDisposable {
       return req;
     };
 
-    using var response = await SendLimitedWithRetryAsync(make).ConfigureAwait(false);
+    using var response = await _httpSvc.SendLimitedAsync(make).ConfigureAwait(false);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);

@@ -55,33 +55,21 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     var fileSize = fileInfo.Length;
 
     var overheadRemaining = OverheadUnitsPerGame;
+    var overheadStep = OverheadUnitsPerGame / 3;
 
     var game = await igdb.SearchGameAsync(displayName, settings.Console);
-
     if (game == null) {
       AnsiConsole.MarkupLine($"[yellow]No IGDB match for:[/] {displayName}");
       progress.Increment(fileSize + overheadRemaining);
       return;
     }
 
-    var overheadStep = OverheadUnitsPerGame / 4;
-
     progress.Increment(overheadStep);
     overheadRemaining -= overheadStep;
 
-    var coverTaskCall = igdb.SearchCoverUrlAsync(game.Id);
-    var shotsTaskCall = igdb.SearchScreenshotUrlsAsync(game.Id);
-
-    await coverTaskCall;
+    var (cover, screenshots) = await igdb.GetMediaAsync(game.Id);
     progress.Increment(overheadStep);
     overheadRemaining -= overheadStep;
-
-    await shotsTaskCall;
-    progress.Increment(overheadStep);
-    overheadRemaining -= overheadStep;
-
-    var coverUrl = coverTaskCall.Result;
-    var screenshots = shotsTaskCall.Result;
 
     var gameCode = Encoder.Encode(game.Id);
     var gameFolderName = gameCode + " - " + name;
@@ -112,7 +100,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       gameCode,
       settings.Console,
       game.Summary,
-      coverUrl,
+      cover,
       screenshots,
       gameFolderPath
     );
