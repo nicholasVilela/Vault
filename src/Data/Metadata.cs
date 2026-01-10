@@ -6,6 +6,7 @@ public record struct Metadata {
   public string GameCode { get; set; }
   public string Platform { get; set; }
   public string Summary { get; set; }
+  public string Extension { get; set; }
   public MediaBlock Media { get; set; }
 
   public class MediaBlock {

@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Threading.Tasks.Dataflow;
 using Spectre.Console;
 
 namespace Vault.Helpers;
@@ -95,6 +96,22 @@ public static class FileHelper {
     if (entry == null) throw new InvalidOperationException($"ZIP '{zipPath}' contains no files.");
 
     return entry;
+  }
+
+  public static string GetFileExtensionFromZip(string zipPath) {
+    if (!Path.Exists(zipPath)) return null;
+    
+    using var fs = File.OpenRead(zipPath);
+    using var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false);
+    var entry = archive.Entries.First();
+
+    return Path.GetExtension(entry.FullName);
+  }
+
+  public static string GetFileExtensionFromZip(ZipArchive archive) {
+    var entry = archive.Entries.First();
+
+    return Path.GetExtension(entry.FullName);
   }
 
   public static void Move(

@@ -66,6 +66,15 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
     var gameCode = Encoder.Encode(game.Id);
     var gameFolderName = gameCode + " - " + fileName;
     var gameFolderPath = Path.Combine(settings.WritePath, gameFolderName);
+    var regionFolderPath = Path.Combine(gameFolderPath, "regions", settings.Region);
+    var versionsFolderPath = Path.Combine(regionFolderPath, "versions");
+    var filePath = Path.Combine(versionsFolderPath, $"{settings.Version}.zip");
+    var fileExtension = FileHelper.GetFileExtensionFromZip(filePath);
+    if (fileExtension == null) {
+      ConsoleHelper.Warning($"File does not exist: '{filePath}'");
+      progress.Increment(1);
+      return;
+    }
 
     DeleteExistingMetadataFiles(gameFolderPath);
 
@@ -75,6 +84,7 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
       gameCode,
       settings.Console,
       game.Summary,
+      fileExtension,
       cover,
       screenshots,
       gameFolderPath

@@ -78,6 +78,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     var gameFolderPath = Path.Combine(settings.WritePath, gameFolderName);
     var regionFolderPath = Path.Combine(gameFolderPath, "regions", settings.Region);
     var versionsFolderPath = Path.Combine(regionFolderPath, "versions");
+    var fileExtension = FileHelper.GetFileExtensionFromZip(filePath);
 
     Directory.CreateDirectory(versionsFolderPath);
 
@@ -102,6 +103,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       gameCode,
       settings.Console,
       game.Summary,
+      fileExtension,
       cover,
       screenshots,
       gameFolderPath

@@ -54,7 +54,7 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
       finalize: entries => {
         foreach (var entry in entries) {
           writer.WriteStartElement("game");
-          writer.WriteElementString("path", $"./{entry.Name}.gba");
+          writer.WriteElementString("path", $"./{entry.Name}{entry.Metadata.Extension}");
           writer.WriteElementString("name", entry.Metadata.Title);
           writer.WriteElementString("desc", entry.Metadata.Summary);
           writer.WriteElementString("image", $"./IMAGES/{entry.Name}.jpg");
