@@ -28,7 +28,7 @@ public class IgdbService : IDisposable{
   public async Task<string> GetTokenAsync() {
     if (!string.IsNullOrEmpty(_accessToken)) return _accessToken;
 
-    await _tokenLock.WaitAsync().ConfigureAwait(false);
+    await _tokenLock.WaitAsync();
     try {
       if (!string.IsNullOrEmpty(_accessToken)) return _accessToken;
 
@@ -38,10 +38,10 @@ public class IgdbService : IDisposable{
         return req;
       };
 
-      using var response = await _httpSvc.SendLimitedAsync(make).ConfigureAwait(false);
+      using var response = await _httpSvc.SendLimitedAsync(make);
       response.EnsureSuccessStatusCode();
 
-      var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+      var json = await response.Content.ReadAsStringAsync();
       var token = JsonSerializer.Deserialize<IgdbTokenResponse>(json);
 
       _accessToken = token.AccessToken;
@@ -64,7 +64,7 @@ public class IgdbService : IDisposable{
   }
 
   async Task<IgdbPlatform> SearchConsoleUncached(string name) {
-    var token = await GetTokenAsync().ConfigureAwait(false);
+    var token = await GetTokenAsync();
 
     var queryName = name.Replace("\"", "\\\"").ToLowerInvariant();
 
@@ -85,10 +85,10 @@ public class IgdbService : IDisposable{
       return req;
     };
 
-    using var response = await _httpSvc.SendLimitedAsync(make).ConfigureAwait(false);
+    using var response = await _httpSvc.SendLimitedAsync(make);
     response.EnsureSuccessStatusCode();
 
-    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+    var json = await response.Content.ReadAsStringAsync();
     var consoles = JsonSerializer.Deserialize<List<IgdbPlatform>>(json);
 
     if (consoles == null || consoles.Count == 0) return null;
@@ -96,9 +96,9 @@ public class IgdbService : IDisposable{
   }
 
   public async Task<IgdbGame> SearchGameAsync(string name, string consoleName) {
-    var token = await GetTokenAsync().ConfigureAwait(false);
+    var token = await GetTokenAsync();
 
-    var console = await SearchConsole(consoleName).ConfigureAwait(false);
+    var console = await SearchConsole(consoleName);
     if (console == null) return null;
 
     var queryName = name.Replace("\"", "\\\"");
@@ -120,10 +120,10 @@ public class IgdbService : IDisposable{
       return req;
     };
 
-    using var response = await _httpSvc.SendLimitedAsync(make).ConfigureAwait(false);
+    using var response = await _httpSvc.SendLimitedAsync(make);
     response.EnsureSuccessStatusCode();
 
-    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+    var json = await response.Content.ReadAsStringAsync();
     var games = JsonSerializer.Deserialize<List<IgdbGame>>(json);
 
     if (games.Count == 0) return null;
@@ -136,7 +136,7 @@ public class IgdbService : IDisposable{
   }
 
   public async Task<(string coverUrl, List<string> screenshotUrls)> GetMediaAsync(int gameId, int screenshotLimit = 10) {
-    var token = await GetTokenAsync().ConfigureAwait(false);
+    var token = await GetTokenAsync();
 
     var make = () => {
       var url = "https://api.igdb.com/v4/multiquery";
@@ -167,10 +167,10 @@ public class IgdbService : IDisposable{
       return req;
     };
 
-    using var response = await _httpSvc.SendLimitedAsync(make).ConfigureAwait(false);
+    using var response = await _httpSvc.SendLimitedAsync(make);
     response.EnsureSuccessStatusCode();
 
-    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+    var json = await response.Content.ReadAsStringAsync();
 
     var items = JsonSerializer.Deserialize<List<IgdbMultiQueryItem>>(json);
     if (items == null || items.Count == 0) return (null, new List<string>());
@@ -201,62 +201,5 @@ public class IgdbService : IDisposable{
     }
 
     return (coverUrl, screenshots);
-  }
-
-  public async Task<string> SearchCoverUrlAsync(int gameId) {
-    var token = await GetTokenAsync().ConfigureAwait(false);
-
-    var make = () => {
-      var url = "https://api.igdb.com/v4/games";
-      var req = new HttpRequestMessage(HttpMethod.Post, url);
-      req.Headers.Add("Client-ID", _clientId);
-      req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-      req.Content = new StringContent(
-        "fields url;\nwhere game = " + gameId + ";",
-        Encoding.UTF8,
-        "text/plain"
-      );
-      return req;
-    };
-
-    using var response = await _httpSvc.SendLimitedAsync(make).ConfigureAwait(false);
-    response.EnsureSuccessStatusCode();
-
-    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-    var covers = JsonSerializer.Deserialize<List<IgdbCover>>(json);
-
-    if (covers == null || covers.Count == 0 || string.IsNullOrEmpty(covers[0].Url)) return null;
-
-    return covers[0].Url.Replace("t_thumb", "t_cover_big");
-  }
-
-  public async Task<List<string>> SearchScreenshotUrlsAsync(int gameId) {
-    var token = await GetTokenAsync().ConfigureAwait(false);
-
-    var make = () => {
-      var url = "https://api.igdb.com/v4/screenshots";
-      var req = new HttpRequestMessage(HttpMethod.Post, url);
-      req.Headers.Add("Client-ID", _clientId);
-      req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-      req.Content = new StringContent(
-        "fields url;\nwhere game = " + gameId + ";",
-        Encoding.UTF8,
-        "text/plain"
-      );
-      return req;
-    };
-
-    using var response = await _httpSvc.SendLimitedAsync(make).ConfigureAwait(false);
-    response.EnsureSuccessStatusCode();
-
-    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-    var shots = JsonSerializer.Deserialize<List<IgdbScreenshot>>(json);
-
-    if (shots == null) return new List<string>();
-
-    return shots
-      .Where(s => !string.IsNullOrEmpty(s.Url))
-      .Select(s => s.Url.Replace("t_thumb", "t_cover_big"))
-      .ToList();
   }
 }

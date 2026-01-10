@@ -27,13 +27,13 @@ public sealed class HttpService : IDisposable {
 
       using var request = createRequest();
 
-      await _concurrency.WaitAsync(ct).ConfigureAwait(false);
+      await _concurrency.WaitAsync(ct);
       try {
-        await _rate.WaitAsync(ct).ConfigureAwait(false);
+        await _rate.WaitAsync(ct);
 
         HttpResponseMessage response = null;
         try {
-          response = await _client.SendAsync(request, ct).ConfigureAwait(false);
+          response = await _client.SendAsync(request, ct);
 
           if (response.StatusCode != (HttpStatusCode)429) return response;
 
@@ -42,19 +42,19 @@ public sealed class HttpService : IDisposable {
           var delay = GetRetryDelay(response.Headers, attempt);
           response.Dispose();
 
-          await Task.Delay(delay, ct).ConfigureAwait(false);
+          await Task.Delay(delay, ct);
           continue;
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested) {
           if (attempt >= maxRetries) throw;
           var delay = BackoffWithJitter(attempt);
-          await Task.Delay(delay, ct).ConfigureAwait(false);
+          await Task.Delay(delay, ct);
           continue;
         }
         catch (HttpRequestException) {
           if (attempt >= maxRetries) throw;
           var delay = BackoffWithJitter(attempt);
-          await Task.Delay(delay, ct).ConfigureAwait(false);
+          await Task.Delay(delay, ct);
           continue;
         }
       }
