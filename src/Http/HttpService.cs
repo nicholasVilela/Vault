@@ -36,7 +36,6 @@ public sealed class HttpService : IDisposable {
           response = await _client.SendAsync(request, ct);
 
           if (response.StatusCode != (HttpStatusCode)429) return response;
-
           if (attempt >= maxRetries) return response;
 
           var delay = GetRetryDelay(response.Headers, attempt);
