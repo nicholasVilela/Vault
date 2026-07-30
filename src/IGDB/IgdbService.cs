@@ -36,13 +36,7 @@ public partial class IgdbService : IDisposable{
     try {
       if (HasValidToken()) return _accessToken;
 
-      var request = () => {
-        var url = IgdbRoutes.Token(_options.ClientId, _options.ClientSecret);
-        var req = new HttpRequestMessage(HttpMethod.Post, url);
-        return req;
-      };
-
-      using var response = await _httpSvc.SendLimitedAsync(request, ct: ct);
+      using var response = await _httpSvc.SendLimitedAsync(CreateTokenRequest(), ct: ct);
       response.EnsureSuccessStatusCode();
 
       var token = await response.Content.ReadFromJsonAsync<IgdbTokenResponse>(ct);

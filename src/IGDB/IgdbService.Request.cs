@@ -3,6 +3,16 @@ using System.Net.Http.Headers;
 namespace Vault.IGDB;
 
 public partial class IgdbService : IDisposable {
+  public Func<HttpRequestMessage> CreateTokenRequest() {
+    var request = () => {
+      var url = IgdbRoutes.Token(_options.ClientId, _options.ClientSecret);
+      var req = new HttpRequestMessage(HttpMethod.Post, url);
+      return req;
+    };
+
+    return request;
+  }
+
   public Func<HttpRequestMessage> CreatePlatformRequest(string token, string name) {
     var queryName = name.Replace("\"", "\\\"").ToLowerInvariant();
     var request = () => {
