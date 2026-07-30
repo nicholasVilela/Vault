@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Vault.IGDB;
+namespace Vault.IGDB.Data;
 
 public class IgdbMultiQueryItem {
   [JsonPropertyName("name")]

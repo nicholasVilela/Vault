@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Vault.IGDB;
+namespace Vault.IGDB.Data;
 
 public class IgdbCover {
   [JsonPropertyName("url")]
