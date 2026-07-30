@@ -9,11 +9,13 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
-      "program": "${workspaceFolder}/bin/Debug/net9.0/Vault.dll",
+      "program": "${workspaceFolder}/bin/Debug/net11.0/Vault.dll",
       "args": [
         "metadata",
         "-c",
-        "NGC",
+        "WIIU",
+        "-n",
+        "The Legend of Zelda_ The Wind Waker"
       ],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",

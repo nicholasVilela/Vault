@@ -46,15 +46,20 @@ public sealed class HttpService : IDisposable {
           await Task.Delay(RetryDelayMs, ct);
           continue;
         }
-        catch (TaskCanceledException) when (!ct.IsCancellationRequested) {
-          if (attempt >= maxRetries) throw;
-          await Task.Delay(RetryDelayMs, ct);
-          continue;
-        }
-        catch (HttpRequestException) {
-          if (attempt >= maxRetries) throw;
-          await Task.Delay(RetryDelayMs, ct);
-          continue;
+        // catch (TaskCanceledException) when (!ct.IsCancellationRequested) {
+        //   if (attempt >= maxRetries) throw;
+        //   await Task.Delay(RetryDelayMs, ct);
+        //   continue;
+        // }
+        // catch (HttpRequestException) {
+        //   if (attempt >= maxRetries) throw;
+        //   await Task.Delay(RetryDelayMs, ct);
+        //   continue;
+        // }
+        catch (Exception ex) {
+          Console.WriteLine(ex.GetType().FullName);
+          Console.WriteLine(ex.Message);
+          throw;
         }
       }
       finally {

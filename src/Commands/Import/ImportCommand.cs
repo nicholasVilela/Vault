@@ -5,13 +5,14 @@ using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
 using Vault.Helpers;
 using Vault.IGDB;
+using Vault.IGDB.Data;
 
 namespace Vault.Commands;
 
 public class ImportCommand : AsyncCommand<ImportSettings> {
-  private readonly IgdbService _igdbService;
-  public ImportCommand(IgdbService igdbService) {
-    _igdbService = igdbService;
+  private readonly IgdbService _igdbSvc;
+  public ImportCommand(IgdbService igdbSvc) {
+    _igdbSvc = igdbSvc;
   }
 
   const long OverheadUnitsPerGame = 1024 * 1024;
@@ -28,7 +29,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       settings,
       totalWork: FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame * files.Count,
       maxConcurrency: 100,
-      processFile: (file, name, displayName, task) => Import(file, name, displayName, settings, task, _igdbService),
+      processFile: (file, name, displayName, task) => Import(file, name, displayName, settings, task, _igdbSvc),
       getNames: file => {
         var filePath = file.FullName;
         var fileNameNoExt = Path.GetFileNameWithoutExtension(filePath);
@@ -46,25 +47,34 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     string displayName,
     ImportSettings settings,
     ProgressTask progress,
-    IgdbService igdb
-    ) {
+    IgdbService igdbSvc
+  ) {
+    await igdbSvc
+      .GetGame(displayName, settings.Console)
+      .OnSuccessAsync(game => Success(fileInfo, game, name, settings, progress, igdbSvc))
+      .OnNotFoundAsync(() => NotFound(fileInfo, displayName, progress));
+  }
+
+  private static async Task Success(
+    FileInfo fileInfo,
+    IgdbGame game,
+    string name,
+    ImportSettings settings,
+    ProgressTask progress,
+    IgdbService igdbSvc
+  ) {
     var filePath = fileInfo.FullName;
     var fileSize = fileInfo.Length;
-
     var overheadRemaining = OverheadUnitsPerGame;
     var overheadStep = OverheadUnitsPerGame / 3;
-
-    var game = await igdb.GetGame(displayName, settings.Console);
-    if (game == null) {
-      AnsiConsole.MarkupLine($"[yellow]No IGDB match for:[/] {displayName}");
-      progress.Increment(fileSize + overheadRemaining);
-      return;
-    }
 
     progress.Increment(overheadStep);
     overheadRemaining -= overheadStep;
 
-    var (cover, screenshots) = await igdb.GetMedia(game.Id);
+    var media = await igdbSvc.GetMedia(game.Id) switch {
+      Success<IgdbMedia> m => m.Value,
+      _ => null
+    };
     progress.Increment(overheadStep);
     overheadRemaining -= overheadStep;
 
@@ -99,14 +109,19 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       settings.Console,
       game.Summary,
       fileExtension,
-      cover,
-      screenshots,
+      media.Cover,
+      media.Screenshots,
       gameFolderPath
     );
 
     if (overheadRemaining > 0) {
       progress.Increment(overheadRemaining);
     }
+  }
+
+  private static async Task NotFound(FileInfo fileInfo, string displayName, ProgressTask progress) {
+    ConsoleHelper.Warning($"No IGDB match for: {displayName}");
+    progress.Increment(fileInfo.Length + OverheadUnitsPerGame);
   }
 
   public List<FileInfo> GetFiles(ImportSettings settings ) {
