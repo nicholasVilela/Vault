@@ -6,7 +6,6 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
 using Vault.Data;
-using Vault.Helper;
 using Vault.Helpers;
 using Vault.IGDB;
 

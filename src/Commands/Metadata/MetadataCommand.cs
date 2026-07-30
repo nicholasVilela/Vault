@@ -5,7 +5,6 @@ using System.Xml;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
-using Vault.Helper;
 using Vault.Helpers;
 using Vault.IGDB;
 
@@ -51,7 +50,7 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
   ) {
     var game = await igdb.GetGame(displayName, settings.Console);
     if (game == null) {
-      AnsiConsole.MarkupLine($"[yellow]No IGDB match for:[/] {displayName}");
+      ConsoleHelper.Warning($"No IGDB match for: '{displayName}'");
       progress.Increment(OverheadUnitsPerGame);
       return;
     }
@@ -60,33 +59,7 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
     var (cover, screenshots) = await igdb.GetMedia(game.Id);
     progress.Increment(1);
 
-    var gameCode = Encoder.Encode(game.Id);
-    var gameFolderName = gameCode + " - " + fileName;
-    var gameFolderPath = Path.Combine(settings.WritePath, gameFolderName);
-    var regionFolderPath = Path.Combine(gameFolderPath, "regions", settings.Region);
-    var versionsFolderPath = Path.Combine(regionFolderPath, "versions");
-    var filePath = Path.Combine(versionsFolderPath, $"{settings.Version}.zip");
-    var fileExtension = FileHelper.GetFileExtensionFromZip(filePath);
-    if (fileExtension == null) {
-      ConsoleHelper.Warning($"File does not exist: '{filePath}'");
-      progress.Increment(1);
-      return;
-    }
-
-    DeleteExistingMetadataFiles(gameFolderPath);
-
-    MetadataHelper.BuildAndWrite(
-      game.Name,
-      game.Id,
-      gameCode,
-      settings.Console,
-      game.Summary,
-      fileExtension,
-      cover,
-      screenshots,
-      gameFolderPath
-    );
-
+    MetadataHelper.BuildAndWrite(fileName, game, cover, screenshots, settings);
     progress.Increment(1);
   }
 
@@ -110,14 +83,6 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
     }
 
     return result;
-  }
-
-  static void DeleteExistingMetadataFiles(string gameFolderPath) {
-    var yaml = Path.Combine(gameFolderPath, "metadata.yaml");
-    var yml  = Path.Combine(gameFolderPath, "metadata.yml");
-
-    try { if (File.Exists(yaml)) File.Delete(yaml); } catch { }
-    try { if (File.Exists(yml))  File.Delete(yml);  } catch { }
   }
 
   private string SplitPath(string value, int index = 3) {

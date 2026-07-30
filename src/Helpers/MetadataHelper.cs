@@ -1,10 +1,12 @@
 using System.Text;
 using Spectre.Console;
+using Vault.Commands;
 using Vault.Data;
+using Vault.IGDB.Data;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace Vault.Helper;
+namespace Vault.Helpers;
 
 public static class MetadataHelper {
   public static string Build(
@@ -53,10 +55,6 @@ public static class MetadataHelper {
     List<string> screenshots,
     string gameFolderPath
   ) {
-    if (!Path.Exists(gameFolderPath)) {
-      AnsiConsole.MarkupLine($"[yellow]No path found for:[/] {gameFolderPath}");
-      return;
-    }
     var metadataPath = Path.Combine(gameFolderPath, "metadata.yaml");
     await Write(Build(title, gameId, gameCode, platform, summary, coverUrl, extension, screenshots), metadataPath);
   }
@@ -64,11 +62,52 @@ public static class MetadataHelper {
   public static Metadata Parse(FileInfo file) {
     using var reader = file.OpenText();
 
-  var deserializer = new DeserializerBuilder()
-    .WithNamingConvention(UnderscoredNamingConvention.Instance)
-    .IgnoreUnmatchedProperties()
-    .Build();
+    var deserializer = new DeserializerBuilder()
+      .WithNamingConvention(UnderscoredNamingConvention.Instance)
+      .IgnoreUnmatchedProperties()
+      .Build();
 
-  return deserializer.Deserialize<Metadata>(reader);
+    return deserializer.Deserialize<Metadata>(reader);
+  }
+
+  public static void BuildAndWrite(string fileName, IgdbGame game, string cover, List<string> screenshots, BaseSettings settings) {
+    var gameCode = Encoder.Encode(game.Id);
+    var gameFolderName = gameCode + " - " + fileName;
+    var gameFolderPath = Path.Combine(settings.WritePath, gameFolderName);
+    if (!Path.Exists(gameFolderPath)) {
+      ConsoleHelper.Warning($"No path found for: '{gameFolderPath}'");
+      return;
+    }
+    DeleteExistingMetadataFiles(gameFolderPath);
+
+    var regionFolderPath = Path.Combine(gameFolderPath, "regions", settings.Region);
+    var versionsFolderPath = Path.Combine(regionFolderPath, "versions");
+    var filePath = Path.Combine(versionsFolderPath, $"{settings.Version}.zip");
+
+    var fileExtension = FileHelper.GetFileExtensionFromZip(filePath);
+    if (fileExtension == null) {
+      ConsoleHelper.Warning($"File does not exist: '{filePath}'");
+      return;
+    }
+
+    BuildAndWrite(
+      game.Name,
+      game.Id,
+      gameCode,
+      settings.Console,
+      game.Summary,
+      fileExtension,
+      cover,
+      screenshots,
+      gameFolderPath
+    );
+  }
+
+  static void DeleteExistingMetadataFiles(string gameFolderPath) {
+    var yaml = Path.Combine(gameFolderPath, "metadata.yaml");
+    var yml  = Path.Combine(gameFolderPath, "metadata.yml");
+
+    try { if (File.Exists(yaml)) File.Delete(yaml); } catch { }
+    try { if (File.Exists(yml))  File.Delete(yml);  } catch { }
   }
 }
