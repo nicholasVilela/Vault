@@ -49,7 +49,7 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
     IgdbService igdb,
     ProgressTask progress
   ) {
-    var game = await igdb.SearchGameAsync(displayName, settings.Console);
+    var game = await igdb.GetGame(displayName, settings.Console);
     if (game == null) {
       AnsiConsole.MarkupLine($"[yellow]No IGDB match for:[/] {displayName}");
       progress.Increment(OverheadUnitsPerGame);
@@ -57,7 +57,7 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
     }
     progress.Increment(1);
 
-    var (cover, screenshots) = await igdb.GetMediaAsync(game.Id);
+    var (cover, screenshots) = await igdb.GetMedia(game.Id);
     progress.Increment(1);
 
     var gameCode = Encoder.Encode(game.Id);
@@ -110,16 +110,6 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
     }
 
     return result;
-  }
-
-  static string GetMetadataPath(string gameDir) {
-    var yaml = Path.Combine(gameDir, "metadata.yaml");
-    if (File.Exists(yaml)) return yaml;
-
-    var yml  = Path.Combine(gameDir, "metadata.yml");
-    if (File.Exists(yml))  return yml;
-
-    return null;
   }
 
   static void DeleteExistingMetadataFiles(string gameFolderPath) {

@@ -55,7 +55,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     var overheadRemaining = OverheadUnitsPerGame;
     var overheadStep = OverheadUnitsPerGame / 3;
 
-    var game = await igdb.SearchGameAsync(displayName, settings.Console);
+    var game = await igdb.GetGame(displayName, settings.Console);
     if (game == null) {
       AnsiConsole.MarkupLine($"[yellow]No IGDB match for:[/] {displayName}");
       progress.Increment(fileSize + overheadRemaining);
@@ -65,7 +65,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     progress.Increment(overheadStep);
     overheadRemaining -= overheadStep;
 
-    var (cover, screenshots) = await igdb.GetMediaAsync(game.Id);
+    var (cover, screenshots) = await igdb.GetMedia(game.Id);
     progress.Increment(overheadStep);
     overheadRemaining -= overheadStep;
 

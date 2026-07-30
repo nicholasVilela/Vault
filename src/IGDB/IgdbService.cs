@@ -13,6 +13,7 @@ namespace Vault.IGDB;
 public class IgdbService : IDisposable{
   private readonly IgdbOptions _options;
   private string _accessToken;
+  private DateTimeOffset _accessTokenExpiration;
   readonly SemaphoreSlim _tokenLock = new(1, 1);
   private HttpService _httpSvc;
 
@@ -24,13 +25,15 @@ public class IgdbService : IDisposable{
   }
 
   public void Dispose() => _httpSvc.Dispose();
+  private bool HasValidToken() => !string.IsNullOrWhiteSpace(_accessToken) && DateTimeOffset.UtcNow < _accessTokenExpiration;
 
-  public async Task<string> GetTokenAsync() {
-    if (!string.IsNullOrEmpty(_accessToken)) return _accessToken;
+  public async Task<string> GetToken(CancellationToken ct = default) {
+    if (HasValidToken()) return _accessToken;
 
-    await _tokenLock.WaitAsync();
+    await _tokenLock.WaitAsync(ct);
+
     try {
-      if (!string.IsNullOrEmpty(_accessToken)) return _accessToken;
+      if (HasValidToken()) return _accessToken;
 
       var request = () => {
         var url = IgdbRoutes.Token(_options.ClientId, _options.ClientSecret);
@@ -38,13 +41,13 @@ public class IgdbService : IDisposable{
         return req;
       };
 
-      using var response = await _httpSvc.SendLimitedAsync(request);
+      using var response = await _httpSvc.SendLimitedAsync(request, ct: ct);
       response.EnsureSuccessStatusCode();
 
-      var json = await response.Content.ReadAsStringAsync();
-      var token = JsonSerializer.Deserialize<IgdbTokenResponse>(json);
-
+      var token = await response.Content.ReadFromJsonAsync<IgdbTokenResponse>(ct);
       _accessToken = token.AccessToken;
+      _accessTokenExpiration = DateTimeOffset.UtcNow.AddSeconds(token.ExpiresIn).AddMinutes(-1);
+      
       return _accessToken;
     }
     finally {
@@ -52,19 +55,17 @@ public class IgdbService : IDisposable{
     }
   }
 
-  public Task<IgdbPlatform> SearchConsole(string name) {
-    if (string.IsNullOrWhiteSpace(name)) return Task.FromResult<IgdbPlatform>(null);
+  public Task<IgdbPlatform> GetPlatform(string name) {
+    if (string.IsNullOrWhiteSpace(name)) return null;
 
-    var lazy = _platformCache.GetOrAdd(
+    return _platformCache.GetOrAdd(
       name,
-      n => new Lazy<Task<IgdbPlatform>>(() => SearchConsoleUncached(n), LazyThreadSafetyMode.ExecutionAndPublication)
-    );
-
-    return lazy.Value;
+      n => new Lazy<Task<IgdbPlatform>>(() => GetPlatformUncached(n), LazyThreadSafetyMode.ExecutionAndPublication)
+    ).Value;
   }
 
-  async Task<IgdbPlatform> SearchConsoleUncached(string name) {
-    var token = await GetTokenAsync();
+  private async Task<IgdbPlatform> GetPlatformUncached(string name) {
+    var token = await GetToken();
 
     var queryName = name.Replace("\"", "\\\"").ToLowerInvariant();
 
@@ -95,16 +96,17 @@ public class IgdbService : IDisposable{
     return consoles[0];
   }
 
-  public async Task<IgdbGame> SearchGameAsync(string name, string consoleName) {
-    var token = await GetTokenAsync();
+  public async Task<IgdbGame> GetGame(string name, string platformName) {
+    var token = await GetToken();
 
-    var console = await SearchConsole(consoleName);
-    if (console == null) return null;
+    var platform = await GetPlatform(platformName);
+    if (platform == null) return null;
 
     var queryName = name.Replace("\"", "\\\"");
 
     var request = () => {
       var url = IgdbRoutes.Games;
+
       var req = new HttpRequestMessage(HttpMethod.Post, url);
       req.Headers.Add("Client-ID", _options.ClientId);
       req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -112,11 +114,12 @@ public class IgdbService : IDisposable{
         $"""
         fields name, id, summary;
         search "{queryName}";
-        where platforms = [{console.Id}];
+        where platforms = [{platform.Id}];
         """,
         Encoding.UTF8,
         "text/plain"
       );
+      
       return req;
     };
 
@@ -135,8 +138,8 @@ public class IgdbService : IDisposable{
       .FirstOrDefault();
   }
 
-  public async Task<(string coverUrl, List<string> screenshotUrls)> GetMediaAsync(int gameId, int screenshotLimit = 10) {
-    var token = await GetTokenAsync();
+  public async Task<(string coverUrl, List<string> screenshotUrls)> GetMedia(int gameId, int screenshotLimit = 10) {
+    var token = await GetToken();
 
     var request = () => {
       var url = IgdbRoutes.Multiquery;
@@ -170,9 +173,7 @@ public class IgdbService : IDisposable{
     using var response = await _httpSvc.SendLimitedAsync(request);
     response.EnsureSuccessStatusCode();
 
-    var json = await response.Content.ReadAsStringAsync();
-
-    var items = JsonSerializer.Deserialize<List<IgdbMultiQueryItem>>(json);
+    var items = await response.Content.ReadFromJsonAsync<List<IgdbMultiQueryItem>>();
     if (items == null || items.Count == 0) return (null, new List<string>());
 
     string coverUrl = null;
