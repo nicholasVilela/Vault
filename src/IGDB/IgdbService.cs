@@ -89,10 +89,10 @@ public class IgdbService : IDisposable{
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync();
-    var consoles = JsonSerializer.Deserialize<List<IgdbPlatform>>(json);
+    var platforms = JsonSerializer.Deserialize<List<IgdbPlatform>>(json);
 
-    if (consoles == null || consoles.Count == 0) return null;
-    return consoles[0];
+    if (platforms == null || platforms.Count == 0) return null;
+    return platforms.First();
   }
 
   public async Task<IgdbResult<IgdbGame>> GetGame(string name, string platformName) {
