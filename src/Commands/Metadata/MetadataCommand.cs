@@ -12,28 +12,25 @@ using Vault.IGDB;
 namespace Vault.Commands;
 
 public class MetadataCommand : AsyncCommand<MetadataSettings> {
+  private readonly IgdbService _igdbService;
+  public MetadataCommand(IgdbService igdbService) {
+    _igdbService = igdbService;
+  }
+
   const int OverheadUnitsPerGame = 3;
 
   public override async Task<int> ExecuteAsync(CommandContext context, MetadataSettings settings, CancellationToken _cancellationToken) {
     if (string.IsNullOrWhiteSpace(settings.Console)) return ConsoleHelper.Fail("--console is required");
 
-    var clientId = Environment.GetEnvironmentVariable("IGDB_CLIENT_ID");
-    if (string.IsNullOrWhiteSpace(clientId)) return ConsoleHelper.Fail("Missing IGDB_CLIENT_ID environment variable.");
-
-    var clientSecret = Environment.GetEnvironmentVariable("IGDB_CLIENT_SECRET");
-    if (string.IsNullOrWhiteSpace(clientSecret)) return ConsoleHelper.Fail("Missing IGDB_CLIENT_SECRET environment variable.");
-
     var files = GetFiles(settings);
     if (files.Count == 0) return ConsoleHelper.Warning($"No game files found in: {settings.ReadPath}");
-
-    using var igdb = new IgdbService(clientId, clientSecret);
 
     await ConsoleHelper.Build(
       files,
       settings,
       totalWork: files.Count * OverheadUnitsPerGame,
       maxConcurrency: 100,
-      processFile: (file, fileName, displayName, task) => Process(fileName, displayName, settings, igdb, task),
+      processFile: (file, fileName, displayName, task) => Process(fileName, displayName, settings, _igdbService, task),
       getNames: file => {
         var filePath = file.FullName;
         var name = SplitPath(filePath);

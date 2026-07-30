@@ -4,24 +4,23 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using Vault.Http;
 using Vault.IGDB.Data;
 
 namespace Vault.IGDB;
 
 public class IgdbService : IDisposable{
-  private readonly string _clientId;
-  private readonly string _clientSecret;
+  private readonly IgdbOptions _options;
   private string _accessToken;
   readonly SemaphoreSlim _tokenLock = new(1, 1);
   private HttpService _httpSvc;
 
   private readonly ConcurrentDictionary<string, Lazy<Task<IgdbPlatform>>> _platformCache = new(StringComparer.OrdinalIgnoreCase);
 
-  public IgdbService(string clientId, string clientSecret) {
+  public IgdbService(IOptions<IgdbOptions> options) {
     _httpSvc = new HttpService(4, 1, 8);
-    _clientId = clientId;
-    _clientSecret = clientSecret;
+    _options = options.Value;
   }
 
   public void Dispose() => _httpSvc.Dispose();
@@ -33,13 +32,13 @@ public class IgdbService : IDisposable{
     try {
       if (!string.IsNullOrEmpty(_accessToken)) return _accessToken;
 
-      var make = () => {
-        var url = $"https://id.twitch.tv/oauth2/token?client_id={_clientId}&client_secret={_clientSecret}&grant_type=client_credentials";
+      var request = () => {
+        var url = IgdbRoutes.Token(_options.ClientId, _options.ClientSecret);
         var req = new HttpRequestMessage(HttpMethod.Post, url);
         return req;
       };
 
-      using var response = await _httpSvc.SendLimitedAsync(make);
+      using var response = await _httpSvc.SendLimitedAsync(request);
       response.EnsureSuccessStatusCode();
 
       var json = await response.Content.ReadAsStringAsync();
@@ -69,10 +68,10 @@ public class IgdbService : IDisposable{
 
     var queryName = name.Replace("\"", "\\\"").ToLowerInvariant();
 
-    var make = () => {
-      var url = "https://api.igdb.com/v4/platforms";
+    var request = () => {
+      var url = IgdbRoutes.Platforms;
       var req = new HttpRequestMessage(HttpMethod.Post, url);
-      req.Headers.Add("Client-ID", _clientId);
+      req.Headers.Add("Client-ID", _options.ClientId);
       req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
       req.Content = new StringContent(
         $"""
@@ -86,7 +85,7 @@ public class IgdbService : IDisposable{
       return req;
     };
 
-    using var response = await _httpSvc.SendLimitedAsync(make);
+    using var response = await _httpSvc.SendLimitedAsync(request);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync();
@@ -104,10 +103,10 @@ public class IgdbService : IDisposable{
 
     var queryName = name.Replace("\"", "\\\"");
 
-    var make = () => {
-      var url = "https://api.igdb.com/v4/games";
+    var request = () => {
+      var url = IgdbRoutes.Games;
       var req = new HttpRequestMessage(HttpMethod.Post, url);
-      req.Headers.Add("Client-ID", _clientId);
+      req.Headers.Add("Client-ID", _options.ClientId);
       req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
       req.Content = new StringContent(
         $"""
@@ -121,7 +120,7 @@ public class IgdbService : IDisposable{
       return req;
     };
 
-    using var response = await _httpSvc.SendLimitedAsync(make);
+    using var response = await _httpSvc.SendLimitedAsync(request);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync();
@@ -139,10 +138,10 @@ public class IgdbService : IDisposable{
   public async Task<(string coverUrl, List<string> screenshotUrls)> GetMediaAsync(int gameId, int screenshotLimit = 10) {
     var token = await GetTokenAsync();
 
-    var make = () => {
-      var url = "https://api.igdb.com/v4/multiquery";
+    var request = () => {
+      var url = IgdbRoutes.Multiquery;
       var req = new HttpRequestMessage(HttpMethod.Post, url);
-      req.Headers.Add("Client-ID", _clientId);
+      req.Headers.Add("Client-ID", _options.ClientId);
       req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
       req.Content = new StringContent(
       string.Format(
@@ -168,7 +167,7 @@ public class IgdbService : IDisposable{
       return req;
     };
 
-    using var response = await _httpSvc.SendLimitedAsync(make);
+    using var response = await _httpSvc.SendLimitedAsync(request);
     response.EnsureSuccessStatusCode();
 
     var json = await response.Content.ReadAsStringAsync();

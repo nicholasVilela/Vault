@@ -10,30 +10,26 @@ using Vault.IGDB;
 namespace Vault.Commands;
 
 public class ImportCommand : AsyncCommand<ImportSettings> {
+  private readonly IgdbService _igdbService;
+  public ImportCommand(IgdbService igdbService) {
+    _igdbService = igdbService;
+  }
+
   const long OverheadUnitsPerGame = 1024 * 1024;
 
   public override async Task<int> ExecuteAsync(CommandContext context, ImportSettings settings, CancellationToken _cancellationToken) {
     if (string.IsNullOrWhiteSpace(settings.Console)) return ConsoleHelper.Fail("--console is required");
-
     if (!Directory.Exists(settings.ReadPath)) return ConsoleHelper.Fail($"Path does not exist: {settings.ReadPath}");
-
-    var clientId = Environment.GetEnvironmentVariable("IGDB_CLIENT_ID");
-    if (string.IsNullOrWhiteSpace(clientId)) return ConsoleHelper.Fail("Missing IGDB_CLIENT_ID environment variable.");
-
-    var clientSecret = Environment.GetEnvironmentVariable("IGDB_CLIENT_SECRET");
-    if (string.IsNullOrWhiteSpace(clientSecret)) return ConsoleHelper.Fail("Missing IGDB_CLIENT_SECRET environment variable.");
 
     var files = GetFiles(settings);
     if (files.Count == 0) return ConsoleHelper.Warning($"No game files found in: {settings.ReadPath}");
-
-    using var igdb = new IgdbService(clientId, clientSecret);
 
     await ConsoleHelper.Build(
       files,
       settings,
       totalWork: FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame * files.Count,
       maxConcurrency: 100,
-      processFile: (file, name, displayName, task) => Import(file, name, displayName, settings, task, igdb),
+      processFile: (file, name, displayName, task) => Import(file, name, displayName, settings, task, _igdbService),
       getNames: file => {
         var filePath = file.FullName;
         var fileNameNoExt = Path.GetFileNameWithoutExtension(filePath);
