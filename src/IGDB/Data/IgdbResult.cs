@@ -5,13 +5,15 @@ public union IgdbResult<T>(
   NotFound,
   Unauthorized,
   RateLimited,
-  RequestFailed
+  RequestFailed,
+  Invalid
 ) {
-  public static IgdbResult<T> Success(T value) => new Success<T>(value);
-  public static IgdbResult<T> NotFound => new NotFound();
-  public static IgdbResult<T> Unauthorized => new Unauthorized();
-  public static IgdbResult<T> RateLimited => new RateLimited();
-  public static IgdbResult<T> RequestFailed => new RequestFailed();
+  public static IgdbResult<T> SuccessResult(T value) => new Success<T>(value);
+  public static IgdbResult<T> NotFoundResult => new NotFound();
+  public static IgdbResult<T> UnauthorizedResult => new Unauthorized();
+  public static IgdbResult<T> RateLimitedResult => new RateLimited();
+  public static IgdbResult<T> RequestFailedResult => new RequestFailed();
+  public static IgdbResult<T> InvalidResult => new Invalid();
 
   public IgdbResult<T> OnSuccess(Action<T> action) {
     if (this is Success<T> success) action(success.Value);
@@ -42,6 +44,19 @@ public union IgdbResult<T>(
     if (this is RateLimited) action();
     return this;
   }
+
+  public async Task<IgdbResult<TResult>> BindAsync<TResult>(
+  Func<T, Task<IgdbResult<TResult>>> bind
+  ) {
+    return this switch {
+      Success<T> success => await bind(success.Value),
+      NotFound => IgdbResult<TResult>.NotFoundResult,
+      Invalid => IgdbResult<TResult>.InvalidResult,
+      Unauthorized => IgdbResult<TResult>.UnauthorizedResult,
+      RateLimited => IgdbResult<TResult>.RateLimitedResult,
+      RequestFailed => IgdbResult<TResult>.RequestFailedResult
+    };
+  }
 }
 
 public record struct Success<T>(T Value);
@@ -49,6 +64,7 @@ public record struct NotFound();
 public record struct Unauthorized();
 public record struct RateLimited();
 public record struct RequestFailed();
+public record struct Invalid();
 
 public static class IgdbResultExtensions {
   public static async Task<IgdbResult<T>> OnSuccessAsync<T>(
@@ -73,5 +89,22 @@ public static class IgdbResultExtensions {
   ) {
     var result = resultTask;
     return result.OnNotFound(action);
+  }
+
+  public static async Task<IgdbResult<TResult>> BindAsync<T, TResult>(
+    this Task<IgdbResult<T>> resultTask,
+    Func<T, Task<IgdbResult<TResult>>> bind
+  ) {
+    var result = await resultTask;
+    return await result.BindAsync(bind);
+  }
+
+  public static async Task<IgdbResult<TResult>> BindOnSuccessAsync<T, TResult>(
+    this Task<IgdbResult<T>> resultTask,
+    Func<T, Task<IgdbResult<TResult>>> bind
+  ) {
+    var result = await resultTask;
+
+    return await result.BindAsync(bind);
   }
 }

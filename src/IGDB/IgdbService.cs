@@ -18,7 +18,7 @@ public partial class IgdbService : IDisposable{
   readonly SemaphoreSlim _tokenLock = new(1, 1);
   private HttpService _httpSvc;
 
-  private readonly ConcurrentDictionary<string, Lazy<Task<IgdbPlatform>>> _platformCache = new(StringComparer.OrdinalIgnoreCase);
+  private readonly ConcurrentDictionary<string, Lazy<Task<IgdbResult<IgdbPlatform>>>> _platformCache = new(StringComparer.OrdinalIgnoreCase);
 
   public IgdbService(IOptions<IgdbOptions> options) {
     _httpSvc = new HttpService(4, 1, 8);
@@ -35,98 +35,29 @@ public partial class IgdbService : IDisposable{
 
     try {
       if (HasValidToken()) return _accessToken;
-
-      using var response = await _httpSvc.SendLimitedAsync(CreateTokenRequest(), ct: ct);
-      response.EnsureSuccessStatusCode();
-
-      var token = await response.Content.ReadFromJsonAsync<IgdbTokenResponse>(ct);
-      _accessToken = token.AccessToken;
-      _accessTokenExpiration = DateTimeOffset.UtcNow.AddSeconds(token.ExpiresIn).AddMinutes(-1);
-      
-      return _accessToken;
+      return await ProcessTokenRequest(ct);
     }
     finally {
       _tokenLock.Release();
     }
   }
 
-  public Task<IgdbPlatform> GetPlatform(string name) {
-    if (string.IsNullOrWhiteSpace(name)) return null;
+  public Task<IgdbResult<IgdbPlatform>> GetPlatform(string name) {
+    if (string.IsNullOrWhiteSpace(name)) return Task.FromResult(IgdbResult<IgdbPlatform>.InvalidResult);
 
     return _platformCache.GetOrAdd(
       name,
-      n => new Lazy<Task<IgdbPlatform>>(() => GetPlatformUncached(n), LazyThreadSafetyMode.ExecutionAndPublication)
+      n => new Lazy<Task<IgdbResult<IgdbPlatform>>>(() => ProcessPlatformRequest(n), LazyThreadSafetyMode.ExecutionAndPublication)
     ).Value;
   }
 
-  private async Task<IgdbPlatform> GetPlatformUncached(string name) {
-    var token = await GetToken();
-
-    using var response = await _httpSvc.SendLimitedAsync(CreatePlatformRequest(token, name));
-    response.EnsureSuccessStatusCode();
-
-    var platforms = await response.Content.ReadFromJsonAsync<List<IgdbPlatform>>();
-    if (platforms == null || platforms.Count == 0) return null;
-
-    return platforms.First();
-  }
-
   public async Task<IgdbResult<IgdbGame>> GetGame(string name, string platformName) {
-    var token = await GetToken();
-
-    var platform = await GetPlatform(platformName);
-    if (platform == null) return IgdbResult<IgdbGame>.NotFound;
-
-    var queryName = name.Replace("\"", "\\\"");
-    using var response = await _httpSvc.SendLimitedAsync(CreateGameRequest(token, platform.Id, queryName));
-    response.EnsureSuccessStatusCode();
-
-    var games = await response.Content.ReadFromJsonAsync<List<IgdbGame>>();
-    if (games.Count == 0) return IgdbResult<IgdbGame>.NotFound;
-
-    var game = games
-      .OrderByDescending(g => string.Equals(g.Name, queryName, StringComparison.OrdinalIgnoreCase))
-      .ThenByDescending(g => g.Name.StartsWith(queryName, StringComparison.OrdinalIgnoreCase))
-      .ThenBy(g => g.Name.Length)
-      .FirstOrDefault();
-
-    return IgdbResult<IgdbGame>.Success(game);
+    return await GetPlatform(platformName)
+      .OnNotFoundAsync(() => Task.FromResult(ConsoleHelper.Warning($"Console not found: '{platformName}'")))
+      .BindAsync(async platform => await ProcessGameRequest(name, platform));
   }
 
   public async Task<IgdbResult<IgdbMedia>> GetMedia(int gameId, int screenshotLimit = 10) {
-    var token = await GetToken();
-    
-    using var response = await _httpSvc.SendLimitedAsync(GetMediaRequest(token, gameId, screenshotLimit));
-    response.EnsureSuccessStatusCode();
-    
-    var items = await response.Content.ReadFromJsonAsync<List<IgdbMultiQueryItem>>();
-    if (items == null || items.Count == 0) return IgdbResult<IgdbMedia>.NotFound;
-
-    string coverUrl = null;
-    var screenshots = new List<string>();
-
-    foreach (var item in items) {
-      if (item.Result.ValueKind != JsonValueKind.Array) continue;
-
-      if (string.Equals(item.Name, "cover", StringComparison.OrdinalIgnoreCase)) {
-        var covers = item.Result.Deserialize<List<IgdbCover>>();
-        var raw = covers?.FirstOrDefault()?.Url;
-        if (!string.IsNullOrWhiteSpace(raw)) coverUrl = raw.Replace("t_thumb", "t_cover_big");
-        continue;
-      }
-
-      if (string.Equals(item.Name, "screenshots", StringComparison.OrdinalIgnoreCase)) {
-        var shots = item.Result.Deserialize<List<IgdbScreenshot>>();
-        if (shots != null) {
-          screenshots.AddRange(
-            shots
-              .Where(s => !string.IsNullOrWhiteSpace(s.Url))
-              .Select(s => s.Url.Replace("t_thumb", "t_cover_big"))
-          );
-        }
-      }
-    }
-
-    return IgdbResult<IgdbMedia>.Success(new IgdbMedia(coverUrl, screenshots));
+    return await ProcessMediaRequest(gameId, screenshotLimit);
   }
 }
