@@ -84,8 +84,8 @@ public static class ConsoleHelper {
       .Columns(
         new ProgressBarColumn(),
         new PercentageColumn(),
-        new RemainingTimeColumn(),
-        new ElapsedTimeColumn())
+        new RemainingTimeColumn()
+        )
       .UseRenderHook((renderable, tasks) =>
         RenderHook(
           files.Count,
