@@ -23,13 +23,18 @@ public static class ConsoleHelper {
   }
 
   public static IRenderable RenderHook(int fileCount, BaseSettings settings, IRenderable renderable, Func<int> getProcessedGames, bool displayPlatform, string suffix) {
+    var titleGrid = new Grid()
+      .AddColumn(new GridColumn().NoWrap())
+      .AddRow(
+        Align.Center(new Markup($"[bold][white]{settings.Title}[/][/]"))
+      ).Expand();
+    
     var gameLabel = string.IsNullOrEmpty(suffix) ? "" : fileCount == 1 ? suffix: $"{suffix}s";
-
-    var grid = new Grid()
+    var infoGrid = new Grid()
       .AddColumn(new GridColumn().PadLeft(1))
       .AddColumn(new GridColumn().PadLeft(1))
       .AddRow(
-        new Markup($"[bold]{settings.Title}:[/]"),
+        new Markup($"[grey]Processing:[/]"),
         new Markup($"[cyan]{getProcessedGames()}/{fileCount}[/] {(displayPlatform ? $"[green]{settings.Console}[/] " : "")}{gameLabel}")
       )
       .AddRow(
@@ -49,13 +54,15 @@ public static class ConsoleHelper {
         new Markup($"[green]{settings.WritePath}[/]")
       );
 
-    var bar = new Panel(new Rows(renderable)).RoundedBorder();
-    var header = new Panel(new Rows(grid)).RoundedBorder();
+    var title = new Panel(new Rows(titleGrid)).RoundedBorder();
+    var info = new Panel(new Rows(infoGrid)).RoundedBorder();
+    var progress = new Panel(new Rows(renderable)).RoundedBorder();
 
-    bar.Width = 50;
-    header.Width = 50;
+    title.Width = 50;
+    info.Width = 50;
+    progress.Width = 50;
 
-    return new Rows(header, bar);
+    return new Rows(title, info, progress);
   }
 
   public static async Task Build<TSettings, TResult>(
