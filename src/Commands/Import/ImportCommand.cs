@@ -35,7 +35,9 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
         var fileNameNoExt = Path.GetFileNameWithoutExtension(filePath);
         var displayName = fileNameNoExt.Replace("_", ":");
         return (fileNameNoExt, displayName);
-      }
+      },
+      displayPlatform: true,
+      suffix: "Game"
     );
 
     return 0;

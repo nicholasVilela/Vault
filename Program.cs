@@ -32,6 +32,7 @@ class Program {
       config.AddCommand<ExportCommand>("export");
       config.AddCommand<GameListCommand>("gamelist");
       config.AddCommand<MetadataCommand>("metadata");
+      config.AddCommand<ESDECommand>("esde");
     });
 
     return app.Run(args);

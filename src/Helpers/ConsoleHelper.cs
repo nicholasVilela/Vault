@@ -17,15 +17,20 @@ public static class ConsoleHelper {
     return -1;
   }
 
-  public static IRenderable RenderHook(int fileCount, BaseSettings settings, IRenderable renderable, Func<int> getProcessedGames) {
-    var gameLabel = fileCount == 1 ? "game" : "games";
+  public static int Info(string text) {
+    AnsiConsole.MarkupLine($"[cyan]{text}[/]");
+    return -1;
+  }
+
+  public static IRenderable RenderHook(int fileCount, BaseSettings settings, IRenderable renderable, Func<int> getProcessedGames, bool displayPlatform, string suffix) {
+    var gameLabel = string.IsNullOrEmpty(suffix) ? "" : fileCount == 1 ? suffix: $"{suffix}s";
 
     var grid = new Grid()
       .AddColumn(new GridColumn().PadLeft(1))
       .AddColumn(new GridColumn().PadLeft(1))
       .AddRow(
         new Markup($"[bold]{settings.Title}:[/]"),
-        new Markup($"[cyan]{getProcessedGames()}/{fileCount}[/] [green]{settings.Console}[/] {gameLabel}")
+        new Markup($"[cyan]{getProcessedGames()}/{fileCount}[/] {(displayPlatform ? $"[green]{settings.Console}[/] " : "")}{gameLabel}")
       )
       .AddRow(
         new Markup("[grey]Name:[/]"),
@@ -60,7 +65,9 @@ public static class ConsoleHelper {
     int maxConcurrency,
     Func<FileInfo, (string name, string displayName)> getNames,
     Func<FileInfo, string, string, ProgressTask, Task<TResult>> processFile,
-    Func<List<TResult>, Task> finalize
+    Func<List<TResult>, Task> finalize,
+    bool displayPlatform = true,
+    string suffix = "game"
   ) where TSettings : BaseSettings {
     var processedGames = 0;
     var errors = new ConcurrentBag<string>();
@@ -77,7 +84,9 @@ public static class ConsoleHelper {
           files.Count,
           settings,
           renderable,
-          () => Volatile.Read(ref processedGames)))
+          () => Volatile.Read(ref processedGames),
+          displayPlatform,
+          suffix))
       .StartAsync(async ctx => {
         var masterTask = ctx.AddTask(
           "Master",
@@ -125,7 +134,9 @@ public static class ConsoleHelper {
     long totalWork,
     int maxConcurrency,
     Func<FileInfo, (string name, string displayName)> getNames,
-    Func<FileInfo, string, string, ProgressTask, Task> processFile
+    Func<FileInfo, string, string, ProgressTask, Task> processFile,
+    bool displayPlatform,
+    string suffix
   ) where TSettings : BaseSettings {
     var processedGames = 0;
     var errors = new ConcurrentBag<string>();
@@ -141,7 +152,9 @@ public static class ConsoleHelper {
           files.Count,
           settings,
           renderable,
-          () => Volatile.Read(ref processedGames)))
+          () => Volatile.Read(ref processedGames),
+          displayPlatform,
+          suffix))
       .StartAsync(async ctx => {
         var masterTask = ctx.AddTask(
           "Master",

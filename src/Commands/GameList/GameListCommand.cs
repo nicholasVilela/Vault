@@ -54,7 +54,9 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
         }
         writer.WriteEndElement();
         return Task.CompletedTask;
-      }
+      },
+      displayPlatform: true,
+      suffix: "Game"
     );
 
     return 0;

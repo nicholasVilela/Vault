@@ -33,7 +33,9 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
         var name = SplitPath(filePath);
         var displayName = name.Replace("_", ":");
         return (name, displayName);
-      }
+      },
+      displayPlatform: true,
+      suffix: "Game"
     );
 
     return 0;

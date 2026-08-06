@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Spectre.Console.Cli;
+using YamlDotNet.Core.Tokens;
 
 namespace Vault.Commands;
 
@@ -19,7 +20,7 @@ public class BaseSettings : CommandSettings {
   
   [CommandOption("-c|--console")]
   [Description("Console name, e.g. ps2, switch, snes")]
-  public string Console { get; set; }
+  public string Console { get { return field.ToUpper(); } set; }
 
   [CommandOption("-r|--region")]
   [Description("Region code, e.g. us, eu, jp")]

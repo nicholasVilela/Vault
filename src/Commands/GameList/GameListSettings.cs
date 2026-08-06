@@ -5,8 +5,8 @@ namespace Vault.Commands;
 
 public class GameListSettings : BaseSettings {
   public override string Title => "Gamelist";
-  public override string ReadPath => @$"{Path}{Console}\ROMS";
-  public override string DefaultDestination => @$"{Path}{Console}";
+  public override string ReadPath => @$"{Path}CONSOLES\{Console}\ROMS";
+  public override string DefaultDestination => @$"{Path}CONSOLES\{Console}";
 
   [CommandOption("--no-images")]
   [Description("Do not download images.")]
