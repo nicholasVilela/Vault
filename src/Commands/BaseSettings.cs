@@ -9,18 +9,15 @@ public class BaseSettings : CommandSettings {
   public virtual string ReadPath { get; }
   public virtual string DefaultDestination { get; }
 
-  public string WritePath => 
-        string.IsNullOrWhiteSpace(Destination)
-            ? DefaultDestination
-            : Destination;
+  public string WritePath => Destination ?? DefaultDestination;
 
-  [CommandOption("-d|--destination")]
-  [Description("Destination")]
+  [CommandOption("-o|--output-destination")]
+  [Description("Output destination")]
   public string Destination { get; set; }
   
   [CommandOption("-c|--console")]
   [Description("Console name, e.g. ps2, switch, snes")]
-  public string Console { get { return field.ToUpper(); } set; }
+  public string Console { get { return field.ToLower(); } set; }
 
   [CommandOption("-r|--region")]
   [Description("Region code, e.g. us, eu, jp")]
@@ -34,7 +31,7 @@ public class BaseSettings : CommandSettings {
   [Description("Game name filter")]
   public string Name { get; set; }
 
-  [CommandOption("-p|--path")]
+  [CommandOption("-d|--drive")]
   [Description(@"Drive, e.g. Z:\")]
-  public string Path { get; set; } = @"Z:\";
+  public string Drive { get => $@"{field}:"; set; } = "Z";
 }

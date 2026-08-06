@@ -5,8 +5,8 @@ namespace Vault.Commands;
 
 public class ESDESettings : BaseSettings {
   public override string Title => "ES-DE";
-  public override string ReadPath => @$"{Path}CONSOLES\{Console}\ROMS";
-  public override string DefaultDestination => @$"{Path}ES-DE";
+  public override string ReadPath => @$"{Drive}/consoles/{Console}/roms";
+  public override string DefaultDestination => @$"{Drive}/es-de";
 
   [CommandOption("-l|--list")]
   [Description("Consoles to include, format as CSV, e.g. 'wiiu,3ds,gba'")]

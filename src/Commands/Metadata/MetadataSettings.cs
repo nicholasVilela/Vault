@@ -5,6 +5,6 @@ namespace Vault.Commands;
 
 public class MetadataSettings : BaseSettings {
   public override string Title => "Metadata";
-  public override string ReadPath => @$"{Path}CONSOLES\{Console}\ROMS";
-  public override string DefaultDestination => @$"{Path}CONSOLES\{Console}\ROMS";
+  public override string ReadPath => @$"{Drive}/consoles/{Console}/roms";
+  public override string DefaultDestination => @$"{Drive}/consoles/{Console}/roms";
 }

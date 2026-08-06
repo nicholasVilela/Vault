@@ -48,7 +48,7 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
     await FileHelper.Copy(sourceGamelistPath, $"{targetGamelistPath}/gamelist.xml");
     progress.Increment(1);
 
-    var sourceImagesPath = $"{folderPath}/IMAGES";
+    var sourceImagesPath = $"{folderPath}/images";
     var targetImagesPath = $"{settings.WritePath}/downloaded_media/covers/{console}";
     Directory.CreateDirectory(targetImagesPath);
     foreach (var imagePath in Directory.EnumerateFiles(sourceImagesPath)) await FileHelper.Copy(imagePath, $"{targetImagesPath}/{new FileInfo(imagePath).Name}");
@@ -57,13 +57,13 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
 
   public List<FileInfo> GetFiles(ESDESettings settings) {
     if (string.IsNullOrEmpty(settings.ConsoleCSV)) {
-      return Directory.EnumerateDirectories($"{settings.Path}CONSOLES").Select(file => new FileInfo(file)).ToList();
+      return Directory.EnumerateDirectories($"{settings.Drive}/consoles").Select(file => new FileInfo(file)).ToList();
     }
 
     var files = new List<FileInfo>();
     var consoles = settings.ConsoleCSV.Split(",");
     foreach (var console in consoles) {
-      var directory = $"{settings.Path}CONSOLES/{console.ToUpper()}";
+      var directory = $"{settings.Drive}/consoles/{console.ToUpper()}";
       files.Add(new FileInfo(directory));
     }
 

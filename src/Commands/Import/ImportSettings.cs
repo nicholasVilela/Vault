@@ -5,8 +5,8 @@ namespace Vault.Commands;
 
 public class ImportSettings : BaseSettings {
   public override string Title => "Imported";
-  public override string ReadPath => @$"{Path}CONSOLES\{Console}\IMPORT";
-  public override string DefaultDestination => @$"{Path}CONSOLES\{Console}\ROMS";
+  public override string ReadPath => @$"{Drive}/consoles/{Console}/import";
+  public override string DefaultDestination => @$"{Drive}/consoles/{Console}/roms";
 
   [CommandOption("-m|--move")]
   [Description("Whether files should be moved or copied to destination.")]

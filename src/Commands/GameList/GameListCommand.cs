@@ -19,14 +19,14 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
     var files = GetFiles(settings);
     if (files.Count == 0) return ConsoleHelper.Warning($"No game files found in: {settings.ReadPath}");
 
-    using var writer = XmlWriter.Create(@$"{settings.DefaultDestination}\gamelist.xml", new XmlWriterSettings {
+    using var writer = XmlWriter.Create(@$"{settings.DefaultDestination}/gamelist.xml", new XmlWriterSettings {
       Indent = true,
       OmitXmlDeclaration = true,
       ConformanceLevel = ConformanceLevel.Document
     });
     writer.WriteStartElement("gameList");
 
-    var imagePath = @$"{settings.DefaultDestination}\IMAGES";
+    var imagePath = @$"{settings.DefaultDestination}/images";
     if (!settings.NoImages && !Directory.Exists(imagePath)) Directory.CreateDirectory(imagePath);
 
     using var http = new HttpClient();
@@ -49,7 +49,7 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
           writer.WriteElementString("path", $"./{entry.Name}{entry.Metadata.Extension}");
           writer.WriteElementString("name", entry.Metadata.Title);
           writer.WriteElementString("desc", entry.Metadata.Summary);
-          writer.WriteElementString("image", $"./IMAGES/{entry.Name}.jpg");
+          writer.WriteElementString("image", $"./images/{entry.Name}.jpg");
           writer.WriteEndElement();
         }
         writer.WriteEndElement();
@@ -80,7 +80,7 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
   private async Task DownloadImages(HttpClient http, Metadata metadata, string name, GameListSettings settings) {
     var url = "https:" + metadata.Media.Cover;
     
-    var imagesDir = Path.Combine(settings.DefaultDestination, "IMAGES");
+    var imagesDir = Path.Combine(settings.DefaultDestination, "images");
 
     var outputFile = Path.Combine(imagesDir, $"{name}.jpg");
 
@@ -122,7 +122,7 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
     return null;
   }
 
-  private string SplitPath(string value, int index = 3) {
+  private string SplitPath(string value, int index = 4) {
     return value.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[index].Split(" - ", 2)[1];
   }
 }

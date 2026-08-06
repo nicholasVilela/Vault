@@ -5,8 +5,8 @@ namespace Vault.Commands;
 
 public class ExportSettings : BaseSettings {
   public override string Title => "Exported";
-  public override string ReadPath => @$"{Path}CONSOLES\{Console}\ROMS";
-  public override string DefaultDestination => @$"{Path}CONSOLES\{Console}\DUMP";
+  public override string ReadPath => @$"{Drive}/consoles/{Console}\roms";
+  public override string DefaultDestination => @$"{Drive}/consoles/{Console}/dump";
 
   [CommandOption("-e|--extract")]
   [Description("Whether files should be extracted")]
