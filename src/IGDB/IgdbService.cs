@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Vault.Extensions;
 using Vault.Helpers;
 using Vault.Http;
 using Vault.IGDB.Data;
@@ -33,13 +34,8 @@ public partial class IgdbService : IDisposable{
 
     await _tokenLock.WaitAsync(ct);
 
-    try {
-      if (HasValidToken()) return _accessToken;
-      return await ProcessTokenRequest(ct);
-    }
-    finally {
-      _tokenLock.Release();
-    }
+    return await ProcessTokenRequest(ct)
+      .Finally(() => _tokenLock.Release());
   }
 
   public Task<IgdbResult<IgdbPlatform>> GetPlatform(string name) {

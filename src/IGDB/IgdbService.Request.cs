@@ -83,6 +83,8 @@ public partial class IgdbService : IDisposable {
   }
   
   private async Task<string> ProcessTokenRequest(CancellationToken ct) {
+    if (HasValidToken()) return _accessToken;
+    
     using var response = await _httpSvc.SendLimitedAsync(CreateTokenRequest(), ct: ct);
     response.EnsureSuccessStatusCode();
 
