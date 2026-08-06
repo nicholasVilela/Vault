@@ -96,7 +96,7 @@ public partial class IgdbService : IDisposable {
   private async Task<IgdbResult<IgdbPlatform>> ProcessPlatformRequest(string name) {
     var token = await GetToken();
 
-    using var response = await _httpSvc.SendLimitedAsync(CreatePlatformRequest(token, "adgrdg"));
+    using var response = await _httpSvc.SendLimitedAsync(CreatePlatformRequest(token, name));
     response.EnsureSuccessStatusCode();
 
     var platforms = await response.Content.ReadFromJsonAsync<List<IgdbPlatform>>();
