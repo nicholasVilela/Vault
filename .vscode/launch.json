@@ -13,9 +13,7 @@
       "args": [
         "metadata",
         "-c",
-        "WIIU",
-        "-n",
-        "The Legend of Zelda_ The Wind Waker"
+        "WIIU"
       ],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
