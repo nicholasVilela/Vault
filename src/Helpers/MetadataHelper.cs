@@ -72,7 +72,7 @@ public static class MetadataHelper {
 
   public static void BuildAndWrite(string fileName, IgdbGame game, string cover, List<string> screenshots, BaseSettings settings) {
     var gameCode = Encoder.Encode(game.Id);
-    var gameFolderName = gameCode + " - " + fileName;
+    var gameFolderName = $"{gameCode} - {fileName}";
     var gameFolderPath = Path.Combine(settings.WritePath, gameFolderName);
     if (!Path.Exists(gameFolderPath)) {
       ConsoleHelper.Warning($"No path found for: '{gameFolderPath}'");

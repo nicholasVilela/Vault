@@ -71,15 +71,18 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     progress.Increment(overheadStep);
     overheadRemaining -= overheadStep;
 
-    var media = await igdbSvc.GetMedia(game.Id) switch {
-      Success<IgdbMedia> m => m.Value,
-      _ => null
-    };
+    var media = await igdbSvc
+      .GetMedia(game.Id)
+      .OnNotFoundAsync(async () => ConsoleHelper.Warning($"Media not found for: '{game.Name}'")) 
+      switch {
+        Success<IgdbMedia> m => m.Value,
+        _ => IgdbMedia.Empty
+      };
     progress.Increment(overheadStep);
     overheadRemaining -= overheadStep;
 
     var gameCode = Encoder.Encode(game.Id);
-    var gameFolderName = gameCode + " - " + name;
+    var gameFolderName = $"{gameCode} - {name}";
     var gameFolderPath = Path.Combine(settings.WritePath, gameFolderName);
     var regionFolderPath = Path.Combine(gameFolderPath, "regions", settings.Region);
     var versionsFolderPath = Path.Combine(regionFolderPath, "versions");
@@ -102,6 +105,8 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       progress.Increment(fileSize - copiedForThisFile);
     }
 
+    // MetadataHelper.BuildAndWrite(fileInfo.Name, game, media.Cover, media.Screenshots, settings);
+
     MetadataHelper.BuildAndWrite(
       game.Name,
       game.Id,
@@ -114,13 +119,11 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       gameFolderPath
     );
 
-    if (overheadRemaining > 0) {
-      progress.Increment(overheadRemaining);
-    }
+    if (overheadRemaining > 0) progress.Increment(overheadRemaining);
   }
 
   private static async Task NotFound(FileInfo fileInfo, string displayName, ProgressTask progress) {
-    ConsoleHelper.Warning($"No IGDB match for: {displayName}");
+    ConsoleHelper.Warning($"No IGDB match for: '{displayName}'");
     progress.Increment(fileInfo.Length + OverheadUnitsPerGame);
   }
 
