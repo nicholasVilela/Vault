@@ -16,9 +16,7 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
   const int OverheadUnitsPerGame = 2;
 
   public override async Task<int> ExecuteAsync(CommandContext context, ESDESettings settings, CancellationToken _cancellationToken) {
-    if (string.IsNullOrEmpty(settings.ConsoleCSV)) return ConsoleHelper.Fail("--list is required");
-
-    var files = GetFiles(settings);
+    var files = GetFiles(settings).Where(file => Path.Exists($"{file.FullName}/gamelist.xml")).ToList();
     if (files.Count == 0) return ConsoleHelper.Fail($"No files found in: '{settings.ConsoleCSV}'");
 
     Directory.CreateDirectory($"{settings.WritePath}/gamelists");
@@ -58,11 +56,14 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
   }
 
   public List<FileInfo> GetFiles(ESDESettings settings) {
-    var files = new List<FileInfo>();
+    if (string.IsNullOrEmpty(settings.ConsoleCSV)) {
+      return Directory.EnumerateDirectories($"{settings.Path}CONSOLES").Select(file => new FileInfo(file)).ToList();
+    }
 
+    var files = new List<FileInfo>();
     var consoles = settings.ConsoleCSV.Split(",");
     foreach (var console in consoles) {
-      var directory = $"{settings.Path}/CONSOLES/{console.ToUpper()}";
+      var directory = $"{settings.Path}CONSOLES/{console.ToUpper()}";
       files.Add(new FileInfo(directory));
     }
 

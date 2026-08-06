@@ -12,8 +12,6 @@
       "program": "${workspaceFolder}/bin/Debug/net11.0/Vault.dll",
       "args": [
         "esde",
-        "-l",
-        "SWITCH"
       ],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
