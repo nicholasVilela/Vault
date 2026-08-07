@@ -23,22 +23,16 @@ public class GamelistCommand : AsyncCommand<GamelistSettings> {
     _httpSvc = new HttpService(4, 1, 8);
   }
 
-  public override async Task<int> ExecuteAsync(CommandContext context, GamelistSettings settings, CancellationToken _cancellationToken) {
-    if (string.IsNullOrWhiteSpace(settings.Console)) return _messageSvc.Error("--console is required");
-    if (!Directory.Exists(settings.ReadPath)) return _messageSvc.Error($"Path does not exist: {settings.ReadPath}");
-
-    var files = GetFiles(settings);
-    if (files.Count == 0) _messageSvc.Error($"No game files found in: '{settings.ReadPath}'");
-    
+  public override async Task<int> ExecuteAsync(CommandContext context, GamelistSettings settings, CancellationToken _cancellationToken) {    
     var imagePath = @$"{settings.DefaultDestination}/images";
     if (!settings.NoImages && !Directory.Exists(imagePath)) Directory.CreateDirectory(imagePath);
 
     var gameElements = new ConcurrentBag<XElement>();
 
     await ConsoleHelper.Build(
-      files,
+      getFiles: _ => GetFiles(settings),
       settings,
-      totalWork: files.Count,
+      totalWork: files => files.Count,
       maxConcurrency: 100,
       processFile: (file, fileName, displayName, task) => Process(file, fileName, settings, task, gameElements),
       getNames: file => {
@@ -50,7 +44,19 @@ public class GamelistCommand : AsyncCommand<GamelistSettings> {
       finalize: () => new XDocument(new XElement("gamelist", gameElements)).Save(@$"{settings.WritePath}/gamelist.xml"),
       displayPlatform: true,
       suffix: "Game",
-      messageSvc: _messageSvc
+      messageSvc: _messageSvc,
+      validate: () => {
+        if (string.IsNullOrWhiteSpace(settings.Console)) {
+          _messageSvc.Error("Console is required with '-c' or '--console'");
+          return false;
+        }
+        if (!Directory.Exists(settings.ReadPath)) {
+          _messageSvc.Error($"Path does not exist: {settings.ReadPath}");
+          return false;
+        }
+
+        return true;
+      }
     );
 
     return 0;

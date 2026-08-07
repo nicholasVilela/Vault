@@ -22,16 +22,13 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
   }
 
   public override async Task<int> ExecuteAsync(CommandContext context, ESDESettings settings, CancellationToken _cancellationToken) {
-    var files = GetFiles(settings).Where(file => Path.Exists($"{file.FullName}/gamelist.xml")).ToList();
-    if (files.Count == 0) _messageSvc.Error($"No game files found in: '{settings.ConsoleCSV}'");
-
     Directory.CreateDirectory($"{settings.WritePath}/gamelists");
-    Directory.CreateDirectory($"{settings.WritePath}/downloaded_media/covers");
+    Directory.CreateDirectory($"{settings.WritePath}/downloaded_media");
 
     await ConsoleHelper.Build(
-      files,
+      getFiles: _ => GetFiles(settings),
       settings,
-      totalWork: files.Count * OverheadUnitsPerGame,
+      totalWork: files => files.Count * OverheadUnitsPerGame,
       maxConcurrency: 100,
       processFile: (file, fileName, displayName, task) => Process(fileName, displayName, settings, task),
       getNames: file => (file.FullName, GetConsoleName(file.Name.ToLower())),
@@ -49,6 +46,11 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
     ESDESettings settings,
     ProgressTask progress
   ) {
+    if (!Directory.Exists(folderPath)) {
+      _messageSvc.Error($"Console does not exist: '{console}'");
+      return;
+    }
+
     var sourceGamelistPath = $"{folderPath}/gamelist.xml";
     var targetGamelistPath = $"{settings.WritePath}/gamelists/{console}";
     Directory.CreateDirectory(targetGamelistPath);
@@ -56,7 +58,7 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
     progress.Increment(1);
 
     var sourceImagesPath = $"{folderPath}/images";
-    var targetImagesPath = $"{settings.WritePath}/downloaded_media/covers/{console}";
+    var targetImagesPath = $"{settings.WritePath}/downloaded_media/{console}/covers";
     Directory.CreateDirectory(targetImagesPath);
     foreach (var imagePath in Directory.EnumerateFiles(sourceImagesPath)) await FileHelper.Copy(imagePath, $"{targetImagesPath}/{new FileInfo(imagePath).Name}");
     progress.Increment(1);
@@ -64,17 +66,17 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
 
   public List<FileInfo> GetFiles(ESDESettings settings) {
     if (string.IsNullOrEmpty(settings.ConsoleCSV)) {
-      return Directory.EnumerateDirectories($"{settings.Drive}/consoles").Select(file => new FileInfo(file)).ToList();
+      return Directory.EnumerateDirectories($"{settings.Drive}/consoles").Select(file => new FileInfo(file)).Where(file => Path.Exists($"{file.FullName}/gamelist.xml")).ToList();
     }
 
     var files = new List<FileInfo>();
     var consoles = settings.ConsoleCSV.Split(",");
     foreach (var console in consoles) {
-      var directory = $"{settings.Drive}/consoles/{console.ToUpper()}";
+      var directory = $"{settings.Drive}/consoles/{console.ToLower()}";
       files.Add(new FileInfo(directory));
     }
 
-    return files;
+    return files.Where(file => Path.Exists($"{file.FullName}/gamelist.xml")).ToList();
   }
 
   public string GetConsoleName(string name) {

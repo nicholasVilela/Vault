@@ -11,9 +11,11 @@
       "preLaunchTask": "build",
       "program": "${workspaceFolder}/bin/Debug/net11.0/Vault.dll",
       "args": [
-        "gamelist",
+        "import",
         "-c",
-        "nds"
+        "nds",
+        "-n",
+        "sdfsfesf"
       ],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",

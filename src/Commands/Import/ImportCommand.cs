@@ -22,16 +22,10 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
   const long OverheadUnitsPerGame = 1024 * 1024;
 
   public override async Task<int> ExecuteAsync(CommandContext context, ImportSettings settings, CancellationToken _cancellationToken) {
-    if (string.IsNullOrWhiteSpace(settings.Console)) return _messageSvc.Error("--console is required");
-    if (!Directory.Exists(settings.ReadPath)) return _messageSvc.Error($"Path does not exist: '{settings.ReadPath}'");
-
-    var files = GetFiles(settings);
-    if (files.Count == 0) _messageSvc.Error($"No game files found in: '{settings.ReadPath}'");
-
     await ConsoleHelper.Build(
-      files,
+      getFiles: _ => GetFiles(settings),
       settings,
-      totalWork: FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame * files.Count,
+      totalWork: files => FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame * files.Count,
       maxConcurrency: 100,
       processFile: (file, name, displayName, task) => Process(file, name, displayName, settings, task, _igdbSvc),
       getNames: file => {
@@ -42,7 +36,19 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       },
       displayPlatform: true,
       suffix: "Game",
-      messageSvc: _messageSvc
+      messageSvc: _messageSvc,
+      validate: () => {
+        if (string.IsNullOrWhiteSpace(settings.Console)) {
+          _messageSvc.Error("Console is required with '-c' or '--console'");
+          return false;
+        }
+        if (!Directory.Exists(settings.ReadPath)) {
+          _messageSvc.Error($"Path does not exist: '{settings.ReadPath}'");
+          return false;
+        }
+
+        return true;
+      }
     );
 
     return 0;

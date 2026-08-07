@@ -18,20 +18,10 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
   const long OverheadUnitsPerGame = 1024 * 1024;
 
   public override async Task<int> ExecuteAsync(CommandContext context, ExportSettings settings, CancellationToken _cancellationToken) {
-    if (string.IsNullOrWhiteSpace(settings.Console)) return _messageSvc.Error("--console is required");
-    if (!Directory.Exists(settings.ReadPath)) return _messageSvc.Error($"Path does not exist: {settings.ReadPath}");
-
-    var files = GetFiles(settings);
-    if (files.Count == 0) _messageSvc.Error($"No game files found in: '{settings.ReadPath}'");
-
-    var copyBytes = FileHelper.TotalCopyBytes(files);
-    var extractBytes = settings.Extract ? FileHelper.TotalExtractBytes(files) : 0;
-    var overheadBytes = OverheadUnitsPerGame * files.Count;
-
     await ConsoleHelper.Build(
-      files,
+      getFiles: _ => GetFiles(settings),
       settings,
-      totalWork: copyBytes + extractBytes + overheadBytes,
+      totalWork: files => FileHelper.TotalCopyBytes(files) + (settings.Extract ? FileHelper.TotalExtractBytes(files) : 0) + OverheadUnitsPerGame * files.Count,
       maxConcurrency: 100,
       processFile: (file, name, displayName, task) => Export(file, name, settings, task),
       getNames: file => {
@@ -42,7 +32,19 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
       },
       displayPlatform: true,
       suffix: "Game",
-      messageSvc: _messageSvc
+      messageSvc: _messageSvc,
+      validate: () => {
+        if (string.IsNullOrWhiteSpace(settings.Console)) {
+          _messageSvc.Error("Console is required with '-c' or '--console'");
+          return false;
+        }
+        if (!Directory.Exists(settings.ReadPath)) {
+          _messageSvc.Error($"Path does not exist: {settings.ReadPath}");
+          return false;
+        }
+
+        return true;
+      }
     );
 
     return 0;

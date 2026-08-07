@@ -11,13 +11,14 @@ public static partial class ConsoleHelper {
     BaseSettings settings,
     IRenderable renderable,
     Func<int> getProcessedGames,
+    Func<int> getSkippedGames,
     bool displayPlatform,
     string suffix,
     MessageService messageSvc
   ) {
     var width = 40;
     var title = RenderTitle(settings, width);
-    var info = RenderInfo(settings, fileCount, suffix, displayPlatform, getProcessedGames, width);
+    var info = RenderInfo(settings, fileCount, suffix, displayPlatform, getProcessedGames, getSkippedGames, width);
     var progress = RenderProgress(renderable, width);
     var warnings = RenderWarnings(messageSvc);
     var errors = RenderErrors(messageSvc);
@@ -57,7 +58,7 @@ public static partial class ConsoleHelper {
     return panel;
   }
 
-  private static Panel RenderInfo(BaseSettings settings, int fileCount, string suffix, bool displayPlatform, Func<int> getProcessedGames, int width) {
+  private static Panel RenderInfo(BaseSettings settings, int fileCount, string suffix, bool displayPlatform, Func<int> getProcessedGames, Func<int> getSkippedGames, int width) {
     var gameLabel = string.IsNullOrEmpty(suffix) ? "" : fileCount == 1 ? suffix: $"{suffix}s";
     var grid =  new Grid()
       .AddColumn(new GridColumn().PadLeft(0))
@@ -65,6 +66,10 @@ public static partial class ConsoleHelper {
       .AddRow(
         new Markup($"[grey]Processed:[/]"),
         new Markup($"[cyan]{getProcessedGames()}/{fileCount}[/] {(displayPlatform ? $"[green]{settings.Console}[/] " : "")}{gameLabel}")
+      )
+      .AddRow(
+        new Markup($"[grey]Skipped:[/]"),
+        new Markup($"[cyan]{getSkippedGames()}[/]")
       )
       .AddRow(
         new Markup("[grey]Name:[/]"),

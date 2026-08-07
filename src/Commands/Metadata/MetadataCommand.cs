@@ -25,15 +25,10 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
   const int OverheadUnitsPerGame = 3;
 
   public override async Task<int> ExecuteAsync(CommandContext context, MetadataSettings settings, CancellationToken _cancellationToken) {
-    if (string.IsNullOrWhiteSpace(settings.Console)) return _messageSvc.Error("--console is required");
-
-    var files = GetFiles(settings);
-    if (files.Count == 0) return _messageSvc.Warning($"No game files found in: '{settings.ReadPath}'");
-
     await ConsoleHelper.Build(
-      files,
+      getFiles: _ => GetFiles(settings),
       settings,
-      totalWork: files.Count * OverheadUnitsPerGame,
+      totalWork: files => files.Count * OverheadUnitsPerGame,
       maxConcurrency: 100,
       processFile: (file, fileName, displayName, task) => Process(fileName, displayName, settings, _igdbSvc, task),
       getNames: file => {
@@ -44,7 +39,20 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
       },
       displayPlatform: true,
       suffix: "Game",
-      messageSvc: _messageSvc
+      messageSvc: _messageSvc,
+      validate: () => {
+        if (string.IsNullOrWhiteSpace(settings.Console)) {
+          _messageSvc.Error("Console is required with '-c' or '--console'");
+          return false;
+        }
+
+        if (!Directory.Exists(settings.ReadPath)) {
+          _messageSvc.Error($"Path does not exist: '{settings.ReadPath}'");
+          return false;
+        }
+
+        return true;
+      }
     );
 
     return 0;

@@ -9,18 +9,21 @@ namespace Vault.Helpers;
 
 public static partial class ConsoleHelper {
   public static async Task Build<TSettings>(
-    List<FileInfo> files,
+    Func<TSettings, List<FileInfo>> getFiles,
     TSettings settings,
-    long totalWork,
+    Func<List<FileInfo>, long> totalWork,
     int maxConcurrency,
     Func<FileInfo, (string name, string displayName)> getNames,
     Func<FileInfo, string, string, ProgressTask, Task> processFile,
     bool displayPlatform,
     string suffix,
     MessageService messageSvc,
+    Func<bool> validate = null,
     Action finalize = null
   ) where TSettings : BaseSettings {
     var processedGames = 0;
+    var skippedGames = 0;
+    var fileCount = 0;
 
     await AnsiConsole.Progress()
       .Columns(
@@ -30,18 +33,26 @@ public static partial class ConsoleHelper {
         )
       .UseRenderHook((renderable, tasks) =>
         RenderHook(
-          files.Count,
+          Volatile.Read(ref fileCount),
           settings,
           renderable,
           () => Volatile.Read(ref processedGames),
+          () => Volatile.Read(ref skippedGames),
           displayPlatform,
           suffix,
           messageSvc))
       .StartAsync(async ctx => {
+        if (validate != null && !validate()) return;
+
+        var files = getFiles(settings);
+        if (files.Count == 0) messageSvc.Error($"No game files found in: '{settings.ReadPath}'{(!string.IsNullOrEmpty(settings.Name) ? $" with name: '{settings.Name}'" : "")}");
+
+        Volatile.Write(ref fileCount, files.Count);
+
         var masterTask = ctx.AddTask(
           "Master",
           autoStart: true,
-          maxValue: totalWork
+          maxValue: totalWork(files)
         );
 
         var semaphore = new SemaphoreSlim(maxConcurrency);
