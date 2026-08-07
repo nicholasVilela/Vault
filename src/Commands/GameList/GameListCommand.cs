@@ -26,16 +26,7 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
 
     var files = GetFiles(settings);
     if (files.Count == 0) _messageSvc.Error($"No game files found in: '{settings.ReadPath}'");
-
-    // using var writer = XmlWriter.Create(@$"{settings.DefaultDestination}/gamelist.xml", new XmlWriterSettings {
-    //   Indent = true,
-    //   OmitXmlDeclaration = true,
-    //   ConformanceLevel = ConformanceLevel.Document
-    // });
-    // writer.WriteStartElement("gameList");
-
     
-
     var imagePath = @$"{settings.DefaultDestination}/images";
     if (!settings.NoImages && !Directory.Exists(imagePath)) Directory.CreateDirectory(imagePath);
 
@@ -54,7 +45,7 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
         var displayName = name.Replace("_", ":");
         return (name, displayName);
       },
-      finalize: () => new XDocument(new XElement("gamelist", gameElements)).Save(@$"{settings.DefaultDestination}/gamelist.xml"),
+      finalize: () => new XDocument(new XElement("gamelist", gameElements)).Save(@$"{settings.WritePath}/gamelist.xml"),
       displayPlatform: true,
       suffix: "Game",
       messageSvc: _messageSvc
@@ -63,7 +54,7 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
     return 0;
   }
 
-  public async Task<GameEntry> Process(
+  public async Task Process(
     HttpClient http,
     FileInfo fileInfo,
     string fileName,
@@ -76,24 +67,21 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
     if (!settings.NoImages) await DownloadImages(http, metadata, fileName, settings);
 
     progress.Increment(1);
-    var entry = new GameEntry(fileName, metadata);
 
-    var element = new XElement("game",
-      new XElement("path", $"./{entry.Name}{entry.Metadata.Extension}"),
-      new XElement("name", entry.Metadata.Title),
-      new XElement("desc", entry.Metadata.Summary),
-      new XElement("image", $"./images/{entry.Name}.jpg"));
-
-    elements.Add(element);
-
-    return entry;
+    elements.Add(new XElement(
+      "game",
+        new XElement("path", $"./{fileName}{metadata.Extension}"),
+        new XElement("name", metadata.Title),
+        new XElement("desc", metadata.Summary),
+        new XElement("image", $"./images/{fileName}.jpg")
+      )
+    );
   }
 
   private async Task DownloadImages(HttpClient http, Metadata metadata, string name, GameListSettings settings) {
     var url = "https:" + metadata.Media.Cover;
     
-    var imagesDir = Path.Combine(settings.DefaultDestination, "images");
-
+    var imagesDir = Path.Combine(settings.WritePath, "images");
     var outputFile = Path.Combine(imagesDir, $"{name}.jpg");
 
     using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
