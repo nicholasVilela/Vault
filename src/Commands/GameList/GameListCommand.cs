@@ -14,7 +14,7 @@ using Vault.Http;
 
 namespace Vault.Commands;
 
-public class GamelistCommand : AsyncCommand<GameListSettings> {
+public class GamelistCommand : AsyncCommand<GamelistSettings> {
   private readonly MessageService _messageSvc;
   private readonly HttpService _httpSvc;
 
@@ -23,7 +23,7 @@ public class GamelistCommand : AsyncCommand<GameListSettings> {
     _httpSvc = new HttpService(4, 1, 8);
   }
 
-  public override async Task<int> ExecuteAsync(CommandContext context, GameListSettings settings, CancellationToken _cancellationToken) {
+  public override async Task<int> ExecuteAsync(CommandContext context, GamelistSettings settings, CancellationToken _cancellationToken) {
     if (string.IsNullOrWhiteSpace(settings.Console)) return _messageSvc.Error("--console is required");
     if (!Directory.Exists(settings.ReadPath)) return _messageSvc.Error($"Path does not exist: {settings.ReadPath}");
 
@@ -59,7 +59,7 @@ public class GamelistCommand : AsyncCommand<GameListSettings> {
   public async Task Process(
     FileInfo fileInfo,
     string fileName,
-    GameListSettings settings,
+    GamelistSettings settings,
     ProgressTask progress,
     ConcurrentBag<XElement> elements
   ) {
@@ -79,7 +79,7 @@ public class GamelistCommand : AsyncCommand<GameListSettings> {
     );
   }
 
-  private async Task DownloadImages(Metadata metadata, string name, GameListSettings settings) {
+  private async Task DownloadImages(Metadata metadata, string name, GamelistSettings settings) {
     var url = $"https:{metadata.Media.Cover}";
     var imagesDir = $"{settings.WritePath}/images";
     var outputFile = $"{imagesDir}/{name}.jpg";
@@ -93,7 +93,7 @@ public class GamelistCommand : AsyncCommand<GameListSettings> {
     await source.CopyToAsync(destination);
   }
 
-  public List<FileInfo> GetFiles(GameListSettings settings) {
+  public List<FileInfo> GetFiles(GamelistSettings settings) {
     var result = new List<FileInfo>();
 
     foreach (var gameDir in Directory.EnumerateDirectories(settings.ReadPath)) {

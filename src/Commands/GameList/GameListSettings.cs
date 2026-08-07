@@ -3,7 +3,7 @@ using Spectre.Console.Cli;
 
 namespace Vault.Commands;
 
-public class GameListSettings : BaseSettings {
+public class GamelistSettings : BaseSettings {
   public override string Title => "Gamelist";
   public override string ReadPath => @$"{Drive}/consoles/{Console}/roms";
   public override string DefaultDestination => @$"{Drive}/consoles/{Console}";
