@@ -33,7 +33,7 @@ class Program {
       config.SetApplicationName("vault");
       config.AddCommand<ImportCommand>("import");
       config.AddCommand<ExportCommand>("export");
-      config.AddCommand<GameListCommand>("gamelist");
+      config.AddCommand<GamelistCommand>("gamelist");
       config.AddCommand<MetadataCommand>("metadata");
       config.AddCommand<ESDECommand>("esde");
     });

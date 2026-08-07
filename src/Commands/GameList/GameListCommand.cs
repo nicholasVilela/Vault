@@ -14,11 +14,11 @@ using Vault.Http;
 
 namespace Vault.Commands;
 
-public class GameListCommand : AsyncCommand<GameListSettings> {
+public class GamelistCommand : AsyncCommand<GameListSettings> {
   private readonly MessageService _messageSvc;
   private readonly HttpService _httpSvc;
 
-  public GameListCommand(MessageService messageSvc) {
+  public GamelistCommand(MessageService messageSvc) {
     _messageSvc = messageSvc;
     _httpSvc = new HttpService(4, 1, 8);
   }
