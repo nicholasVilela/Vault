@@ -3,6 +3,7 @@ using Spectre.Console;
 using Vault.Commands;
 using Vault.Data;
 using Vault.IGDB.Data;
+using Vault.Message;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -70,12 +71,12 @@ public static class MetadataHelper {
     return deserializer.Deserialize<Metadata>(reader);
   }
 
-  public static void BuildAndWrite(string fileName, IgdbGame game, string cover, List<string> screenshots, BaseSettings settings) {
+  public static void BuildAndWrite(string fileName, IgdbGame game, string cover, List<string> screenshots, BaseSettings settings, MessageService messageSvc) {
     var gameCode = Encoder.Encode(game.Id);
     var gameFolderName = $"{gameCode} - {fileName}";
     var gameFolderPath = Path.Combine(settings.WritePath, gameFolderName);
     if (!Path.Exists(gameFolderPath)) {
-      ConsoleHelper.Warning($"No path found for: '{gameFolderPath}'");
+      messageSvc.Warning($"No path found for: '{gameFolderPath}'");
       return;
     }
     DeleteExistingMetadataFiles(gameFolderPath);
@@ -86,7 +87,7 @@ public static class MetadataHelper {
 
     var fileExtension = FileHelper.GetFileExtensionFromZip(filePath);
     if (fileExtension == null) {
-      ConsoleHelper.Warning($"File does not exist: '{filePath}'");
+      messageSvc.Warning($"File does not exist: '{filePath}'");
       return;
     }
 

@@ -23,7 +23,7 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
 
   public override async Task<int> ExecuteAsync(CommandContext context, ESDESettings settings, CancellationToken _cancellationToken) {
     var files = GetFiles(settings).Where(file => Path.Exists($"{file.FullName}/gamelist.xml")).ToList();
-    if (files.Count == 0) return ConsoleHelper.Fail($"No files found in: '{settings.ConsoleCSV}'");
+    if (files.Count == 0) _messageSvc.Error($"No game files found in: '{settings.ConsoleCSV}'");
 
     Directory.CreateDirectory($"{settings.WritePath}/gamelists");
     Directory.CreateDirectory($"{settings.WritePath}/downloaded_media/covers");

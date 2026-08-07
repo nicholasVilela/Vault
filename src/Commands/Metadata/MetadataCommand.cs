@@ -25,10 +25,10 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
   const int OverheadUnitsPerGame = 3;
 
   public override async Task<int> ExecuteAsync(CommandContext context, MetadataSettings settings, CancellationToken _cancellationToken) {
-    if (string.IsNullOrWhiteSpace(settings.Console)) return ConsoleHelper.Fail("--console is required");
+    if (string.IsNullOrWhiteSpace(settings.Console)) return _messageSvc.Error("--console is required");
 
     var files = GetFiles(settings);
-    if (files.Count == 0) return _messageSvc.Warning($"No game files found in: {settings.ReadPath}");
+    if (files.Count == 0) return _messageSvc.Warning($"No game files found in: '{settings.ReadPath}'");
 
     await ConsoleHelper.Build(
       files,
@@ -58,7 +58,7 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
     ProgressTask progress
   ) {
     await igdbSvc
-      .GetGame(displayName, settings.Console)
+      .GetGame(displayName, settings.Console, _messageSvc)
       .OnSuccessAsync(game => Success(fileName, game, settings, progress, igdbSvc))
       .OnNotFoundAsync(() => NotFound(displayName, progress));
   }
@@ -75,7 +75,7 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
       };
     progress.Increment(1);
 
-    MetadataHelper.BuildAndWrite(fileName, game, media.Cover, media.Screenshots, settings);
+    MetadataHelper.BuildAndWrite(fileName, game, media.Cover, media.Screenshots, settings, _messageSvc);
     progress.Increment(1);
   }
 

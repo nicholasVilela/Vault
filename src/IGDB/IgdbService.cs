@@ -15,7 +15,6 @@ namespace Vault.IGDB;
 
 public partial class IgdbService : IDisposable {
   private readonly IgdbOptions _options;
-  private readonly MessageService _messageSvc;
   private string _accessToken;
   private DateTimeOffset _accessTokenExpiration;
   readonly SemaphoreSlim _tokenLock = new(1, 1);
@@ -23,9 +22,8 @@ public partial class IgdbService : IDisposable {
 
   private readonly ConcurrentDictionary<string, Lazy<Task<IgdbResult<IgdbPlatform>>>> _platformCache = new(StringComparer.OrdinalIgnoreCase);
 
-  public IgdbService(IOptions<IgdbOptions> options, MessageService messageSvc) {
+  public IgdbService(IOptions<IgdbOptions> options) {
     _httpSvc = new HttpService(4, 1, 8);
-    _messageSvc = messageSvc;
     _options = options.Value;
   }
 
@@ -50,9 +48,9 @@ public partial class IgdbService : IDisposable {
     ).Value;
   }
 
-  public async Task<IgdbResult<IgdbGame>> GetGame(string name, string platformName) {
+  public async Task<IgdbResult<IgdbGame>> GetGame(string name, string platformName, MessageService messageSvc) {
     return await GetPlatform(platformName)
-      .OnNotFoundAsync(() => Task.FromResult(_messageSvc.Warning($"Console not found: '{platformName}'")))
+      .OnNotFoundAsync(async () => messageSvc.Warning($"Console not found: '{platformName}'"))
       .BindAsync(async platform => await ProcessGameRequest(name, platform));
   }
 

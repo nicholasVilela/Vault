@@ -20,11 +20,11 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
   }
 
   public override async Task<int> ExecuteAsync(CommandContext context, GameListSettings settings, CancellationToken _cancellationToken) {
-    if (string.IsNullOrWhiteSpace(settings.Console)) return ConsoleHelper.Fail("--console is required");
-    if (!Directory.Exists(settings.ReadPath)) return ConsoleHelper.Fail($"Path does not exist: {settings.ReadPath}");
+    if (string.IsNullOrWhiteSpace(settings.Console)) return _messageSvc.Error("--console is required");
+    if (!Directory.Exists(settings.ReadPath)) return _messageSvc.Error($"Path does not exist: {settings.ReadPath}");
 
     var files = GetFiles(settings);
-    if (files.Count == 0) return _messageSvc.Warning($"No game files found in: {settings.ReadPath}");
+    if (files.Count == 0) _messageSvc.Error($"No game files found in: '{settings.ReadPath}'");
 
     using var writer = XmlWriter.Create(@$"{settings.DefaultDestination}/gamelist.xml", new XmlWriterSettings {
       Indent = true,

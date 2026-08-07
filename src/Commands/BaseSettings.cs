@@ -17,7 +17,7 @@ public class BaseSettings : CommandSettings {
   
   [CommandOption("-c|--console")]
   [Description("Console name, e.g. ps2, switch, snes")]
-  public string Console { get { return field.ToLower(); } set; }
+  public string Console { get { return field != null ? field.ToLower() : ""; } set; }
 
   [CommandOption("-r|--region")]
   [Description("Region code, e.g. us, eu, jp")]
