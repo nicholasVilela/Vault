@@ -8,10 +8,6 @@ public class MessageService : IDisposable {
   public ConcurrentBag<string> Warnings { get; set; } = new();
   public ConcurrentBag<string> Errors { get; set; } = new();
 
-  public MessageService() {
-    
-  }
-
   public int Warning(string message) {
     Warnings.Add(message);
     return 0;
