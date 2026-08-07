@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using Spectre.Console.Cli;
-using YamlDotNet.Core.Tokens;
 
 namespace Vault.Commands;
 

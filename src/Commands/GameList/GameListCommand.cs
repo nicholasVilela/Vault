@@ -1,14 +1,9 @@
 using System.Collections.Concurrent;
-using System.IO.Compression;
-using System.Text;
-using System.Xml;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Spectre.Console.Rendering;
 using Vault.Message;
 using Vault.Metadata.Data;
 using Vault.Renderer;
-using Vault.IGDB;
 using System.Xml.Linq;
 using Vault.Http;
 using Vault.Metadata;

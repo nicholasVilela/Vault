@@ -1,6 +1,3 @@
-using System;
-using System.Text;
-
 namespace Vault;
 
 public static class Encoder {

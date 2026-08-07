@@ -1,13 +1,7 @@
 using System.Collections.Concurrent;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Vault.Message;
 using Vault.Extensions;
-using Vault.Renderer;
 using Vault.Http;
 using Vault.IGDB.Data;
 

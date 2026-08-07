@@ -6,7 +6,6 @@ using Vault.IGDB.Data;
 using Vault.Message;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using Vault.Renderer;
 using Vault.Files;
 
 namespace Vault.Metadata;

@@ -1,8 +1,5 @@
-using System.Collections.Concurrent;
-using System.IO.Compression;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Spectre.Console.Rendering;
 using Vault.Message;
 using Vault.Renderer;
 using Vault.Files;

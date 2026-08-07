@@ -1,6 +1,3 @@
-using System.ComponentModel;
-using Spectre.Console.Cli;
-
 namespace Vault.Commands;
 
 public class MetadataSettings : BaseSettings {

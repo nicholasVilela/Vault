@@ -1,15 +1,7 @@
-using System.Collections.Concurrent;
-using System.IO.Compression;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
-using System.Xml;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Spectre.Console.Rendering;
 using Vault.Message;
 using Vault.Renderer;
-using Vault.IGDB;
-using Vault.IGDB.Data;
 using Vault.Files;
 
 namespace Vault.Commands;
