@@ -7,7 +7,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Vault.Message;
 using Vault.Extensions;
-using Vault.Helpers;
+using Vault.Renderer;
 using Vault.Http;
 using Vault.IGDB.Data;
 

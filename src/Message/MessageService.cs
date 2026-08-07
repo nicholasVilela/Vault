@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using Spectre.Console;
-using Vault.Helpers;
+using Vault.Renderer;
 
 namespace Vault.Message;
 

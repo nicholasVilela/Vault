@@ -3,9 +3,9 @@ using Spectre.Console.Rendering;
 using Vault.Commands;
 using Vault.Message;
 
-namespace Vault.Helpers;
+namespace Vault.Renderer;
 
-public static partial class ConsoleHelper {
+public static partial class ConsoleBuilder {
   public static IRenderable RenderHook(
     int fileCount,
     BaseSettings settings,

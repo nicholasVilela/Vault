@@ -7,9 +7,10 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
 using Vault.Message;
-using Vault.Helpers;
+using Vault.Renderer;
 using Vault.IGDB;
 using Vault.IGDB.Data;
+using Vault.Files;
 
 namespace Vault.Commands;
 
@@ -25,7 +26,7 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
     Directory.CreateDirectory($"{settings.WritePath}/gamelists");
     Directory.CreateDirectory($"{settings.WritePath}/downloaded_media");
 
-    await ConsoleHelper.Build(
+    await ConsoleBuilder.Build(
       getFiles: _ => GetFiles(settings),
       settings,
       totalWork: files => files.Count * OverheadUnitsPerGame,

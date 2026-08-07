@@ -2,7 +2,7 @@ using System.IO.Compression;
 using System.Threading.Tasks.Dataflow;
 using Spectre.Console;
 
-namespace Vault.Helpers;
+namespace Vault.Files;
 
 public static class FileHelper {
   const int BufferSize = 81920;

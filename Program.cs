@@ -10,8 +10,22 @@ using Vault.Http;
 
 class Program {
   static int Main(string[] args) {
-    Console.OutputEncoding = Encoding.UTF8;
+    var services = GetServices();
 
+    var app = new CommandApp(new TypeRegistrar(services));
+    app.Configure(config => {
+      config.SetApplicationName("vault");
+      config.AddCommand<ImportCommand>("import");
+      config.AddCommand<ExportCommand>("export");
+      config.AddCommand<GamelistCommand>("gamelist");
+      config.AddCommand<MetadataCommand>("metadata");
+      config.AddCommand<ESDECommand>("esde");
+    });
+
+    return app.Run(args);
+  }
+
+  public static ServiceCollection GetServices() {
     var configuration = new ConfigurationBuilder()
       .AddEnvironmentVariables()
       .Build();
@@ -28,16 +42,6 @@ class Program {
     services.AddTransient<IgdbService>();
     services.AddTransient<MessageService>();
 
-    var app = new CommandApp(new TypeRegistrar(services));
-    app.Configure(config => {
-      config.SetApplicationName("vault");
-      config.AddCommand<ImportCommand>("import");
-      config.AddCommand<ExportCommand>("export");
-      config.AddCommand<GamelistCommand>("gamelist");
-      config.AddCommand<MetadataCommand>("metadata");
-      config.AddCommand<ESDECommand>("esde");
-    });
-
-    return app.Run(args);
+    return services;
   }
 }

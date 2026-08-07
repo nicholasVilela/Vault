@@ -4,7 +4,8 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
 using Vault.Message;
-using Vault.Helpers;
+using Vault.Renderer;
+using Vault.Files;
 
 namespace Vault.Commands;
 
@@ -18,7 +19,7 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
   const long OverheadUnitsPerGame = 1024 * 1024;
 
   public override async Task<int> ExecuteAsync(CommandContext context, ExportSettings settings, CancellationToken _cancellationToken) {
-    await ConsoleHelper.Build(
+    await ConsoleBuilder.Build(
       getFiles: _ => GetFiles(settings),
       settings,
       totalWork: files => FileHelper.TotalCopyBytes(files) + (settings.Extract ? FileHelper.TotalExtractBytes(files) : 0) + OverheadUnitsPerGame * files.Count,
@@ -56,8 +57,8 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
     Directory.CreateDirectory(settings.WritePath);
     
     var destPath = $"{settings.WritePath}/{name}.zip";
-    await ProgressHelper.Build(task, file.Length, progress => FileHelper.Copy(file.FullName, destPath, progress));
-    if (settings.Extract) await ProgressHelper.Build(task, FileHelper.ExtractBytes(file), progress => FileHelper.Extract(destPath, progress));
+    await GetProgress(task, file.Length, progress => FileHelper.Copy(file.FullName, destPath, progress));
+    if (settings.Extract) await GetProgress(task, FileHelper.ExtractBytes(file), progress => FileHelper.Extract(destPath, progress));
   }
 
   public List<FileInfo> GetFiles(ExportSettings settings) {
@@ -76,5 +77,21 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
 
   private string SplitPath(string value, int index = 3) {
     return value.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[index].Split(" - ", 2)[1];
+  }
+
+  private static async Task GetProgress(ProgressTask task, long total, Func<IProgress<long>, Task> operation) {
+    var lastReported = 0L;
+
+    var progress = new Progress<long>(bytes => {
+      if (bytes <= lastReported) return;
+
+      var delta = bytes - lastReported;
+      lastReported = bytes;
+      task.Increment(delta);
+    });
+
+    await operation(progress);
+
+    if (lastReported < total) task.Increment(total - lastReported);
   }
 }

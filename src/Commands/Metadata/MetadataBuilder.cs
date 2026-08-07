@@ -1,15 +1,17 @@
 using System.Text;
 using Spectre.Console;
 using Vault.Commands;
-using Vault.Data;
+using Vault.Metadata.Data;
 using Vault.IGDB.Data;
 using Vault.Message;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
+using Vault.Renderer;
+using Vault.Files;
 
-namespace Vault.Helpers;
+namespace Vault.Metadata;
 
-public static class MetadataHelper {
+public static class MetadataBuilder {
   public static string Build(
     string title,
     int gameId,
@@ -20,14 +22,14 @@ public static class MetadataHelper {
     string coverUrl,
     List<string> screenshots
     ) {
-    var meta = new Metadata {
+    var meta = new GameMetadata {
       Title = title.Replace("'", "''"),
       GameId = gameId,
       GameCode = gameCode,
       Platform = platform,
       Summary = summary,
       Extension = extension,
-      Media = new Metadata.MediaBlock {
+      Media = new GameMetadata.MediaBlock {
         Cover = coverUrl,
         Screenshots = screenshots,
       },
@@ -60,7 +62,7 @@ public static class MetadataHelper {
     await Write(Build(title, gameId, gameCode, platform, summary, coverUrl, extension, screenshots), metadataPath);
   }
 
-  public static Metadata Parse(FileInfo file) {
+  public static GameMetadata Parse(FileInfo file) {
     using var reader = file.OpenText();
 
     var deserializer = new DeserializerBuilder()
@@ -68,7 +70,7 @@ public static class MetadataHelper {
       .IgnoreUnmatchedProperties()
       .Build();
 
-    return deserializer.Deserialize<Metadata>(reader);
+    return deserializer.Deserialize<GameMetadata>(reader);
   }
 
   public static void BuildAndWrite(string fileName, IgdbGame game, string cover, List<string> screenshots, BaseSettings settings, MessageService messageSvc) {

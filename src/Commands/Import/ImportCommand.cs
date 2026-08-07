@@ -4,9 +4,11 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
 using Vault.Message;
-using Vault.Helpers;
+using Vault.Renderer;
 using Vault.IGDB;
 using Vault.IGDB.Data;
+using Vault.Metadata;
+using Vault.Files;
 
 namespace Vault.Commands;
 
@@ -22,7 +24,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
   const long OverheadUnitsPerGame = 1024 * 1024;
 
   public override async Task<int> ExecuteAsync(CommandContext context, ImportSettings settings, CancellationToken _cancellationToken) {
-    await ConsoleHelper.Build(
+    await ConsoleBuilder.Build(
       getFiles: _ => GetFiles(settings),
       settings,
       totalWork: files => FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame * files.Count,
@@ -118,9 +120,9 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
       progress.Increment(fileSize - copiedForThisFile);
     }
 
-    // MetadataHelper.BuildAndWrite(fileInfo.Name, game, media.Cover, media.Screenshots, settings);
+    // MetadataBuilder.BuildAndWrite(fileInfo.Name, game, media.Cover, media.Screenshots, settings);
 
-    MetadataHelper.BuildAndWrite(
+    MetadataBuilder.BuildAndWrite(
       game.Name,
       game.Id,
       gameCode,

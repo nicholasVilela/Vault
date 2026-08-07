@@ -5,9 +5,9 @@ using Vault.Commands;
 using Vault.Message;
 using Vault.Extensions;
 
-namespace Vault.Helpers;
+namespace Vault.Renderer;
 
-public static partial class ConsoleHelper {
+public static partial class ConsoleBuilder {
   public static async Task Build<TSettings>(
     Func<TSettings, List<FileInfo>> getFiles,
     TSettings settings,

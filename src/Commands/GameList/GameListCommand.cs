@@ -6,11 +6,12 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
 using Vault.Message;
-using Vault.Data;
-using Vault.Helpers;
+using Vault.Metadata.Data;
+using Vault.Renderer;
 using Vault.IGDB;
 using System.Xml.Linq;
 using Vault.Http;
+using Vault.Metadata;
 
 namespace Vault.Commands;
 
@@ -29,7 +30,7 @@ public class GamelistCommand : AsyncCommand<GamelistSettings> {
 
     var gameElements = new ConcurrentBag<XElement>();
 
-    await ConsoleHelper.Build(
+    await ConsoleBuilder.Build(
       getFiles: _ => GetFiles(settings),
       settings,
       totalWork: files => files.Count,
@@ -69,7 +70,7 @@ public class GamelistCommand : AsyncCommand<GamelistSettings> {
     ProgressTask progress,
     ConcurrentBag<XElement> elements
   ) {
-    var metadata = MetadataHelper.Parse(fileInfo);
+    var metadata = MetadataBuilder.Parse(fileInfo);
     
     if (!settings.NoImages) await DownloadImages(metadata, fileName, settings);
 
@@ -85,7 +86,7 @@ public class GamelistCommand : AsyncCommand<GamelistSettings> {
     );
   }
 
-  private async Task DownloadImages(Metadata metadata, string name, GamelistSettings settings) {
+  private async Task DownloadImages(GameMetadata metadata, string name, GamelistSettings settings) {
     if (string.IsNullOrEmpty(metadata.Media.Cover)) {
       _messageSvc.Warning($"No cover art found for: '{metadata.Title}'");
       return;

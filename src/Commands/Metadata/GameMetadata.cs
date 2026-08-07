@@ -1,6 +1,6 @@
-namespace Vault.Data;
+namespace Vault.Metadata.Data;
 
-public record struct Metadata {
+public record struct GameMetadata {
   public string Title { get; set; }
   public int GameId { get; set; }
   public string GameCode { get; set; }

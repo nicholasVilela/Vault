@@ -1,15 +1,10 @@
-using System.Collections.Concurrent;
-using System.IO.Compression;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
-using System.Xml;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Spectre.Console.Rendering;
 using Vault.Message;
-using Vault.Helpers;
+using Vault.Renderer;
 using Vault.IGDB;
 using Vault.IGDB.Data;
+using Vault.Metadata;
 
 namespace Vault.Commands;
 
@@ -25,7 +20,7 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
   const int OverheadUnitsPerGame = 3;
 
   public override async Task<int> ExecuteAsync(CommandContext context, MetadataSettings settings, CancellationToken _cancellationToken) {
-    await ConsoleHelper.Build(
+    await ConsoleBuilder.Build(
       getFiles: _ => GetFiles(settings),
       settings,
       totalWork: files => files.Count * OverheadUnitsPerGame,
@@ -83,7 +78,7 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
       };
     progress.Increment(1);
 
-    MetadataHelper.BuildAndWrite(fileName, game, media.Cover, media.Screenshots, settings, _messageSvc);
+    MetadataBuilder.BuildAndWrite(fileName, game, media.Cover, media.Screenshots, settings, _messageSvc);
     progress.Increment(1);
   }
 
