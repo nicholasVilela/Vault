@@ -80,6 +80,11 @@ public class GamelistCommand : AsyncCommand<GamelistSettings> {
   }
 
   private async Task DownloadImages(Metadata metadata, string name, GamelistSettings settings) {
+    if (string.IsNullOrEmpty(metadata.Media.Cover)) {
+      _messageSvc.Warning($"No cover art found for: '{metadata.Title}'");
+      return;
+    }
+
     var url = $"https:{metadata.Media.Cover}";
     var imagesDir = $"{settings.WritePath}/images";
     var outputFile = $"{imagesDir}/{name}.jpg";
