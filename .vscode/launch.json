@@ -11,11 +11,11 @@
       "preLaunchTask": "build",
       "program": "${workspaceFolder}/bin/Debug/net11.0/Vault.dll",
       "args": [
-        "import",
+        "metadata",
         "-c",
-        "nds",
+        "gba",
         "-n",
-        "sdfsfesf"
+        "Metroid Fusion"
       ],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",

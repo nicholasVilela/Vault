@@ -16,34 +16,34 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
   const long OverheadUnitsPerGame = 1024 * 1024;
 
   public override async Task<int> ExecuteAsync(CommandContext context, ExportSettings settings, CancellationToken _cancellationToken) {
-    await ConsoleBuilder.Build(
-      getFiles: _ => GetFiles(settings),
-      settings,
-      totalWork: files => FileHelper.TotalCopyBytes(files) + (settings.Extract ? FileHelper.TotalExtractBytes(files) : 0) + OverheadUnitsPerGame * files.Count,
-      maxConcurrency: 100,
-      processFile: (file, name, displayName, task) => Export(file, name, settings, task),
-      getNames: file => {
-        var filePath = file.FullName;
-        var name = SplitPath(filePath);
-        var displayName = name.Replace("_", ":");
-        return (name, displayName);
-      },
-      displayPlatform: true,
-      suffix: "Game",
-      messageSvc: _messageSvc,
-      validate: () => {
-        if (string.IsNullOrWhiteSpace(settings.Console)) {
-          _messageSvc.Error("Console is required with '-c' or '--console'");
-          return false;
-        }
-        if (!Directory.Exists(settings.ReadPath)) {
-          _messageSvc.Error($"Path does not exist: {settings.ReadPath}");
-          return false;
-        }
+    // await ConsoleBuilder.Build(
+    //   getFiles: _ => GetFiles(settings),
+    //   settings,
+    //   totalWork: files => FileHelper.TotalCopyBytes(files) + (settings.Extract ? FileHelper.TotalExtractBytes(files) : 0) + OverheadUnitsPerGame * files.Count,
+    //   maxConcurrency: 100,
+    //   processFile: (file, name, displayName, task) => Export(file, name, settings, task),
+    //   getNames: file => {
+    //     var filePath = file.FullName;
+    //     var name = SplitPath(filePath);
+    //     var displayName = name.Replace("_", ":");
+    //     return (name, displayName);
+    //   },
+    //   displayPlatform: true,
+    //   suffix: "Game",
+    //   messageSvc: _messageSvc,
+    //   validate: () => {
+    //     if (string.IsNullOrWhiteSpace(settings.Console)) {
+    //       _messageSvc.Error("Console is required with '-c' or '--console'");
+    //       return false;
+    //     }
+    //     if (!Directory.Exists(settings.ReadPath)) {
+    //       _messageSvc.Error($"Path does not exist: {settings.ReadPath}");
+    //       return false;
+    //     }
 
-        return true;
-      }
-    );
+    //     return true;
+    //   }
+    // );
 
     return 0;
   }

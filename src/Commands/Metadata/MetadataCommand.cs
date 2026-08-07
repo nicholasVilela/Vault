@@ -20,22 +20,11 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
   const int OverheadUnitsPerGame = 3;
 
   public override async Task<int> ExecuteAsync(CommandContext context, MetadataSettings settings, CancellationToken _cancellationToken) {
-    await ConsoleBuilder.Build(
-      getFiles: _ => GetFiles(settings),
-      settings,
-      totalWork: files => files.Count * OverheadUnitsPerGame,
-      maxConcurrency: 100,
-      processFile: (file, fileName, displayName, task) => Process(fileName, displayName, settings, _igdbSvc, task),
-      getNames: file => {
-        var filePath = file.FullName;
-        var name = SplitPath(filePath);
-        var displayName = name.Replace("_", ":");
-        return (name, displayName);
-      },
-      displayPlatform: true,
-      suffix: "Game",
-      messageSvc: _messageSvc,
-      validate: () => {
+    await new JobServiceBuilder<MetadataSettings>()
+      .WithSettings(settings)
+      .WithJobOptions(new JobOptions(100))
+      .WithRenderOptions(new RenderOptions(true, "Game"))
+      .Validate(() => {
         if (string.IsNullOrWhiteSpace(settings.Console)) {
           _messageSvc.Error("Console is required with '-c' or '--console'");
           return false;
@@ -47,8 +36,55 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
         }
 
         return true;
-      }
-    );
+      })
+      // .Validate(() => {
+      //   if (!Directory.Exists(settings.ReadPath)) {
+      //     _messageSvc.Error($"Path does not exist: '{settings.ReadPath}'");
+      //     return false;
+      //   }
+
+      //   return true;
+      // })
+      .GetFiles(_ => GetFiles(settings))
+      .GetNames(file => {
+        var filePath = file.FullName;
+        var name = SplitPath(filePath);
+        var displayName = name.Replace("_", ":");
+        return (name, displayName);
+      })
+      .GetProcess((file, fileName, displayName, task) => Process(fileName, displayName, settings, _igdbSvc, task))
+      .GetWork(files => files.Count * OverheadUnitsPerGame)
+      .Run(_messageSvc);
+
+    // await ConsoleBuilder.Build(
+    //   getFiles: _ => GetFiles(settings),
+    //   settings,
+    //   totalWork: files => files.Count * OverheadUnitsPerGame,
+    //   maxConcurrency: 100,
+    //   processFile: (file, fileName, displayName, task) => Process(fileName, displayName, settings, _igdbSvc, task),
+    //   getNames: file => {
+    //     var filePath = file.FullName;
+    //     var name = SplitPath(filePath);
+    //     var displayName = name.Replace("_", ":");
+    //     return (name, displayName);
+    //   },
+    //   displayPlatform: true,
+    //   suffix: "Game",
+    //   messageSvc: _messageSvc,
+    //   validate: () => {
+    //     if (string.IsNullOrWhiteSpace(settings.Console)) {
+    //       _messageSvc.Error("Console is required with '-c' or '--console'");
+    //       return false;
+    //     }
+
+    //     if (!Directory.Exists(settings.ReadPath)) {
+    //       _messageSvc.Error($"Path does not exist: '{settings.ReadPath}'");
+    //       return false;
+    //     }
+
+    //     return true;
+    //   }
+    // );
 
     return 0;
   }

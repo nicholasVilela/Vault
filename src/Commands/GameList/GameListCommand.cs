@@ -20,40 +20,40 @@ public class GamelistCommand : AsyncCommand<GamelistSettings> {
   }
 
   public override async Task<int> ExecuteAsync(CommandContext context, GamelistSettings settings, CancellationToken _cancellationToken) {    
-    var imagePath = @$"{settings.DefaultDestination}/images";
-    if (!settings.NoImages && !Directory.Exists(imagePath)) Directory.CreateDirectory(imagePath);
+    // var imagePath = @$"{settings.DefaultDestination}/images";
+    // if (!settings.NoImages && !Directory.Exists(imagePath)) Directory.CreateDirectory(imagePath);
 
-    var gameElements = new ConcurrentBag<XElement>();
+    // var gameElements = new ConcurrentBag<XElement>();
 
-    await ConsoleBuilder.Build(
-      getFiles: _ => GetFiles(settings),
-      settings,
-      totalWork: files => files.Count,
-      maxConcurrency: 100,
-      processFile: (file, fileName, displayName, task) => Process(file, fileName, settings, task, gameElements),
-      getNames: file => {
-        var filePath = file.FullName;
-        var name = SplitPath(filePath);
-        var displayName = name.Replace("_", ":");
-        return (name, displayName);
-      },
-      finalize: () => new XDocument(new XElement("gamelist", gameElements)).Save(@$"{settings.WritePath}/gamelist.xml"),
-      displayPlatform: true,
-      suffix: "Game",
-      messageSvc: _messageSvc,
-      validate: () => {
-        if (string.IsNullOrWhiteSpace(settings.Console)) {
-          _messageSvc.Error("Console is required with '-c' or '--console'");
-          return false;
-        }
-        if (!Directory.Exists(settings.ReadPath)) {
-          _messageSvc.Error($"Path does not exist: {settings.ReadPath}");
-          return false;
-        }
+    // await ConsoleBuilder.Build(
+    //   getFiles: _ => GetFiles(settings),
+    //   settings,
+    //   totalWork: files => files.Count,
+    //   maxConcurrency: 100,
+    //   processFile: (file, fileName, displayName, task) => Process(file, fileName, settings, task, gameElements),
+    //   getNames: file => {
+    //     var filePath = file.FullName;
+    //     var name = SplitPath(filePath);
+    //     var displayName = name.Replace("_", ":");
+    //     return (name, displayName);
+    //   },
+    //   finalize: () => new XDocument(new XElement("gamelist", gameElements)).Save(@$"{settings.WritePath}/gamelist.xml"),
+    //   displayPlatform: true,
+    //   suffix: "Game",
+    //   messageSvc: _messageSvc,
+    //   validate: () => {
+    //     if (string.IsNullOrWhiteSpace(settings.Console)) {
+    //       _messageSvc.Error("Console is required with '-c' or '--console'");
+    //       return false;
+    //     }
+    //     if (!Directory.Exists(settings.ReadPath)) {
+    //       _messageSvc.Error($"Path does not exist: {settings.ReadPath}");
+    //       return false;
+    //     }
 
-        return true;
-      }
-    );
+    //     return true;
+    //   }
+    // );
 
     return 0;
   }
