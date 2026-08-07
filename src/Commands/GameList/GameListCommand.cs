@@ -5,6 +5,7 @@ using System.Xml;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
+using Vault.Message;
 using Vault.Data;
 using Vault.Helpers;
 using Vault.IGDB;
@@ -12,12 +13,18 @@ using Vault.IGDB;
 namespace Vault.Commands;
 
 public class GameListCommand : AsyncCommand<GameListSettings> {
+  private readonly MessageService _messageSvc;
+
+  public GameListCommand(MessageService messageSvc) {
+    _messageSvc = messageSvc;
+  }
+
   public override async Task<int> ExecuteAsync(CommandContext context, GameListSettings settings, CancellationToken _cancellationToken) {
     if (string.IsNullOrWhiteSpace(settings.Console)) return ConsoleHelper.Fail("--console is required");
     if (!Directory.Exists(settings.ReadPath)) return ConsoleHelper.Fail($"Path does not exist: {settings.ReadPath}");
 
     var files = GetFiles(settings);
-    if (files.Count == 0) return ConsoleHelper.Warning($"No game files found in: {settings.ReadPath}");
+    if (files.Count == 0) return _messageSvc.Warning($"No game files found in: {settings.ReadPath}");
 
     using var writer = XmlWriter.Create(@$"{settings.DefaultDestination}/gamelist.xml", new XmlWriterSettings {
       Indent = true,
@@ -56,7 +63,8 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
         return Task.CompletedTask;
       },
       displayPlatform: true,
-      suffix: "Game"
+      suffix: "Game",
+      messageSvc: _messageSvc
     );
 
     return 0;

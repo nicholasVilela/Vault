@@ -4,7 +4,7 @@ using Spectre.Console.Cli;
 namespace Vault.Commands;
 
 public class ImportSettings : BaseSettings {
-  public override string Title => "Imported";
+  public override string Title => "Import";
   public override string ReadPath => @$"{Drive}/consoles/{Console}/import";
   public override string DefaultDestination => @$"{Drive}/consoles/{Console}/roms";
 

@@ -6,6 +6,7 @@ using System.Xml;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
+using Vault.Message;
 using Vault.Helpers;
 using Vault.IGDB;
 using Vault.IGDB.Data;
@@ -13,7 +14,12 @@ using Vault.IGDB.Data;
 namespace Vault.Commands;
 
 public class ESDECommand : AsyncCommand<ESDESettings> {
+  private readonly MessageService _messageSvc;
   const int OverheadUnitsPerGame = 2;
+
+  public ESDECommand(MessageService messageSvc) {
+    _messageSvc = messageSvc;
+  }
 
   public override async Task<int> ExecuteAsync(CommandContext context, ESDESettings settings, CancellationToken _cancellationToken) {
     var files = GetFiles(settings).Where(file => Path.Exists($"{file.FullName}/gamelist.xml")).ToList();
@@ -30,7 +36,8 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
       processFile: (file, fileName, displayName, task) => Process(fileName, displayName, settings, task),
       getNames: file => (file.FullName, GetConsoleName(file.Name.ToLower())),
       displayPlatform: false,
-      suffix: "Console"
+      suffix: "Console",
+      messageSvc: _messageSvc
     );
 
     return 0;

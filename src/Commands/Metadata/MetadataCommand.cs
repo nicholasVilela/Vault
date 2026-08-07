@@ -6,6 +6,7 @@ using System.Xml;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
+using Vault.Message;
 using Vault.Helpers;
 using Vault.IGDB;
 using Vault.IGDB.Data;
@@ -14,8 +15,11 @@ namespace Vault.Commands;
 
 public class MetadataCommand : AsyncCommand<MetadataSettings> {
   private readonly IgdbService _igdbSvc;
-  public MetadataCommand(IgdbService igdbSvc) {
+  private readonly MessageService _messageSvc;
+
+  public MetadataCommand(IgdbService igdbSvc, MessageService messageSvc) {
     _igdbSvc = igdbSvc;
+    _messageSvc = messageSvc;
   }
 
   const int OverheadUnitsPerGame = 3;
@@ -24,7 +28,7 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
     if (string.IsNullOrWhiteSpace(settings.Console)) return ConsoleHelper.Fail("--console is required");
 
     var files = GetFiles(settings);
-    if (files.Count == 0) return ConsoleHelper.Warning($"No game files found in: {settings.ReadPath}");
+    if (files.Count == 0) return _messageSvc.Warning($"No game files found in: {settings.ReadPath}");
 
     await ConsoleHelper.Build(
       files,
@@ -39,7 +43,8 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
         return (name, displayName);
       },
       displayPlatform: true,
-      suffix: "Game"
+      suffix: "Game",
+      messageSvc: _messageSvc
     );
 
     return 0;
@@ -58,12 +63,12 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
       .OnNotFoundAsync(() => NotFound(displayName, progress));
   }
 
-  private static async Task Success(string fileName, IgdbGame game, MetadataSettings settings, ProgressTask progress, IgdbService igdbSvc) {
+  private async Task Success(string fileName, IgdbGame game, MetadataSettings settings, ProgressTask progress, IgdbService igdbSvc) {
     progress.Increment(1);
 
     var media = await igdbSvc
       .GetMedia(game.Id)
-      .OnNotFoundAsync(async () => ConsoleHelper.Warning($"Media not found for: '{game.Name}'")) 
+      .OnNotFoundAsync(async () => _messageSvc.Warning($"Media not found for: '{game.Name}'")) 
       switch {
         Success<IgdbMedia> m => m.Value,
         _ => IgdbMedia.Empty
@@ -74,8 +79,8 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
     progress.Increment(1);
   }
 
-  private static async Task NotFound(string displayName, ProgressTask progress) {
-    ConsoleHelper.Warning($"No IGDB match for: {displayName}");
+  private async Task NotFound(string displayName, ProgressTask progress) {
+    _messageSvc.Warning($"No IGDB match for: {displayName}");
     progress.Increment(OverheadUnitsPerGame);
   }
 

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using Vault.Commands;
+using Vault.Message;
 using Vault.Extensions;
 
 namespace Vault.Helpers;
@@ -22,7 +23,15 @@ public static class ConsoleHelper {
     return -1;
   }
 
-  public static IRenderable RenderHook(int fileCount, BaseSettings settings, IRenderable renderable, Func<int> getProcessedGames, bool displayPlatform, string suffix) {
+  public static IRenderable RenderHook(
+    int fileCount,
+    BaseSettings settings,
+    IRenderable renderable,
+    Func<int> getProcessedGames,
+    bool displayPlatform,
+    string suffix,
+    ConcurrentBag<string> warnings
+  ) {
     var titleGrid = new Grid()
       .AddColumn(new GridColumn().NoWrap())
       .AddRow(
@@ -34,7 +43,7 @@ public static class ConsoleHelper {
       .AddColumn(new GridColumn().PadLeft(1))
       .AddColumn(new GridColumn().PadLeft(1))
       .AddRow(
-        new Markup($"[grey]Processing:[/]"),
+        new Markup($"[grey]Processed:[/]"),
         new Markup($"[cyan]{getProcessedGames()}/{fileCount}[/] {(displayPlatform ? $"[green]{settings.Console}[/] " : "")}{gameLabel}")
       )
       .AddRow(
@@ -50,19 +59,49 @@ public static class ConsoleHelper {
         new Markup($"[yellow]{settings.Version}[/]")
       )
       .AddRow(
-        new Markup("[grey]Destination:[/]"),
+        new Markup("[grey]Output:[/]"),
         new Markup($"[green]{settings.WritePath}[/]")
       );
 
-    var title = new Panel(new Rows(titleGrid)).RoundedBorder();
-    var info = new Panel(new Rows(infoGrid)).RoundedBorder();
-    var progress = new Panel(new Rows(renderable)).RoundedBorder();
+    var title = new Panel(new Rows(titleGrid)).Header("[bold] COMMAND [/]").RoundedBorder();
+    var info = new Panel(new Rows(infoGrid)).Header("[bold] INFO [/]").RoundedBorder();
+    var progress = new Panel(new Rows(renderable)).Header("[bold] PROGRESS [/]").RoundedBorder();
 
-    title.Width = 50;
-    info.Width = 50;
-    progress.Width = 50;
+    title.Width = 40;
+    info.Width = 40;
+    progress.Width = 40;
 
-    return new Rows(title, info, progress);
+    var main = new Rows(
+      title,
+      info,
+      progress
+    );
+
+    if (warnings.IsEmpty)
+      return main;
+
+    var warningRows = warnings
+      .Select(warning => (IRenderable)new Markup($"[white]{warning}[/]"))
+      .ToArray();
+
+    var warningPanel = new Panel(new Rows(warningRows))
+      .Header("[bold] WARNINGS [/]")
+      .RoundedBorder()
+      .BorderColor(Color.Yellow);
+
+    // warningPanel.Width = 50;
+
+    var layout = new Grid()
+      .AddColumn(new GridColumn())
+      .AddColumn(new GridColumn().Width(0))
+      .AddColumn(new GridColumn())
+      .AddRow(
+        main,
+        Text.Empty,
+        warningPanel
+      );
+
+    return layout;
   }
 
   public static async Task Build<TSettings, TResult>(
@@ -73,8 +112,9 @@ public static class ConsoleHelper {
     Func<FileInfo, (string name, string displayName)> getNames,
     Func<FileInfo, string, string, ProgressTask, Task<TResult>> processFile,
     Func<List<TResult>, Task> finalize,
-    bool displayPlatform = true,
-    string suffix = "game"
+    bool displayPlatform,
+    string suffix,
+    MessageService messageSvc
   ) where TSettings : BaseSettings {
     var processedGames = 0;
     var errors = new ConcurrentBag<string>();
@@ -93,7 +133,8 @@ public static class ConsoleHelper {
           renderable,
           () => Volatile.Read(ref processedGames),
           displayPlatform,
-          suffix))
+          suffix,
+          messageSvc.Warnings))
       .StartAsync(async ctx => {
         var masterTask = ctx.AddTask(
           "Master",
@@ -143,7 +184,8 @@ public static class ConsoleHelper {
     Func<FileInfo, (string name, string displayName)> getNames,
     Func<FileInfo, string, string, ProgressTask, Task> processFile,
     bool displayPlatform,
-    string suffix
+    string suffix,
+    MessageService messageSvc
   ) where TSettings : BaseSettings {
     var processedGames = 0;
     var errors = new ConcurrentBag<string>();
@@ -152,8 +194,7 @@ public static class ConsoleHelper {
       .Columns(
         new ProgressBarColumn(),
         new PercentageColumn(),
-        new RemainingTimeColumn(),
-        new ElapsedTimeColumn())
+        new RemainingTimeColumn())
       .UseRenderHook((renderable, tasks) =>
         RenderHook(
           files.Count,
@@ -161,7 +202,8 @@ public static class ConsoleHelper {
           renderable,
           () => Volatile.Read(ref processedGames),
           displayPlatform,
-          suffix))
+          suffix,
+          messageSvc.Warnings))
       .StartAsync(async ctx => {
         var masterTask = ctx.AddTask(
           "Master",

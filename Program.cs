@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 using Vault.Commands;
+using Vault.Message;
 using Vault.IGDB;
 using Vault.IGDB.Data;
 
@@ -24,6 +25,7 @@ class Program {
       .ValidateOnStart();
 
     services.AddTransient<IgdbService>();
+    services.AddTransient<MessageService>();
 
     var app = new CommandApp(new TypeRegistrar(services));
     app.Configure(config => {

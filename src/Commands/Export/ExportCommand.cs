@@ -3,11 +3,18 @@ using System.IO.Compression;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
+using Vault.Message;
 using Vault.Helpers;
 
 namespace Vault.Commands;
 
 public class ExportCommand : AsyncCommand<ExportSettings> {
+  private readonly MessageService _messageSvc;
+
+  public ExportCommand(MessageService messageSvc) {
+    _messageSvc = messageSvc;
+  }
+  
   const long OverheadUnitsPerGame = 1024 * 1024;
 
   public override async Task<int> ExecuteAsync(CommandContext context, ExportSettings settings, CancellationToken _cancellationToken) {
@@ -16,7 +23,7 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
     if (!Directory.Exists(settings.ReadPath)) return ConsoleHelper.Fail($"Path does not exist: {settings.ReadPath}");
 
     var files = GetFiles(settings);
-    if (files.Count == 0) return ConsoleHelper.Warning($"No game files found in: {settings.ReadPath}");
+    if (files.Count == 0) return _messageSvc.Warning($"No game files found in: {settings.ReadPath}");
 
     var copyBytes = FileHelper.TotalCopyBytes(files);
     var extractBytes = settings.Extract ? FileHelper.TotalExtractBytes(files) : 0;
@@ -35,7 +42,8 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
         return (name, displayName);
       },
       displayPlatform: true,
-      suffix: "Game"
+      suffix: "Game",
+      messageSvc: _messageSvc
     );
 
     return 0;
