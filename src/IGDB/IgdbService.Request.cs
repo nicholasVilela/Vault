@@ -144,6 +144,7 @@ public partial class IgdbService : IDisposable {
 
       if (item.Name == "cover") {
         var covers = item.Result.Deserialize<List<IgdbCover>>();
+        if (covers == null || covers.Count == 0) continue;
         var raw = covers.FirstOrDefault().Url;
         if (!string.IsNullOrWhiteSpace(raw)) coverUrl = raw.Replace("t_thumb", "t_cover_big");
         continue;
