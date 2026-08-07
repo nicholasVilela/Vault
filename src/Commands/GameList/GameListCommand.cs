@@ -9,6 +9,7 @@ using Vault.Message;
 using Vault.Data;
 using Vault.Helpers;
 using Vault.IGDB;
+using System.Xml.Linq;
 
 namespace Vault.Commands;
 
@@ -26,42 +27,34 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
     var files = GetFiles(settings);
     if (files.Count == 0) _messageSvc.Error($"No game files found in: '{settings.ReadPath}'");
 
-    using var writer = XmlWriter.Create(@$"{settings.DefaultDestination}/gamelist.xml", new XmlWriterSettings {
-      Indent = true,
-      OmitXmlDeclaration = true,
-      ConformanceLevel = ConformanceLevel.Document
-    });
-    writer.WriteStartElement("gameList");
+    // using var writer = XmlWriter.Create(@$"{settings.DefaultDestination}/gamelist.xml", new XmlWriterSettings {
+    //   Indent = true,
+    //   OmitXmlDeclaration = true,
+    //   ConformanceLevel = ConformanceLevel.Document
+    // });
+    // writer.WriteStartElement("gameList");
+
+    
 
     var imagePath = @$"{settings.DefaultDestination}/images";
     if (!settings.NoImages && !Directory.Exists(imagePath)) Directory.CreateDirectory(imagePath);
 
     using var http = new HttpClient();
+    var gameElements = new ConcurrentBag<XElement>();
 
     await ConsoleHelper.Build(
       files,
       settings,
       totalWork: files.Count,
       maxConcurrency: 100,
-      processFile: (file, fileName, displayName, task) => Process(http, file, fileName, settings, task),
+      processFile: (file, fileName, displayName, task) => Process(http, file, fileName, settings, task, gameElements),
       getNames: file => {
         var filePath = file.FullName;
         var name = SplitPath(filePath);
         var displayName = name.Replace("_", ":");
         return (name, displayName);
       },
-      finalize: entries => {
-        foreach (var entry in entries) {
-          writer.WriteStartElement("game");
-          writer.WriteElementString("path", $"./{entry.Name}{entry.Metadata.Extension}");
-          writer.WriteElementString("name", entry.Metadata.Title);
-          writer.WriteElementString("desc", entry.Metadata.Summary);
-          writer.WriteElementString("image", $"./images/{entry.Name}.jpg");
-          writer.WriteEndElement();
-        }
-        writer.WriteEndElement();
-        return Task.CompletedTask;
-      },
+      finalize: () => new XDocument(new XElement("gamelist", gameElements)).Save(@$"{settings.DefaultDestination}/gamelist.xml"),
       displayPlatform: true,
       suffix: "Game",
       messageSvc: _messageSvc
@@ -75,14 +68,25 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
     FileInfo fileInfo,
     string fileName,
     GameListSettings settings,
-    ProgressTask progress
+    ProgressTask progress,
+    ConcurrentBag<XElement> elements
   ) {
     var metadata = MetadataHelper.Parse(fileInfo);
     
     if (!settings.NoImages) await DownloadImages(http, metadata, fileName, settings);
 
     progress.Increment(1);
-    return new GameEntry(fileName, metadata);
+    var entry = new GameEntry(fileName, metadata);
+
+    var element = new XElement("game",
+      new XElement("path", $"./{entry.Name}{entry.Metadata.Extension}"),
+      new XElement("name", entry.Metadata.Title),
+      new XElement("desc", entry.Metadata.Summary),
+      new XElement("image", $"./images/{entry.Name}.jpg"));
+
+    elements.Add(element);
+
+    return entry;
   }
 
   private async Task DownloadImages(HttpClient http, Metadata metadata, string name, GameListSettings settings) {
