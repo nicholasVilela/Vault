@@ -6,6 +6,7 @@ using Vault.Commands;
 using Vault.Message;
 using Vault.IGDB;
 using Vault.IGDB.Data;
+using Vault.Http;
 
 class Program {
   static int Main(string[] args) {

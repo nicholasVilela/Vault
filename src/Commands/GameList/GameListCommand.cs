@@ -10,14 +10,17 @@ using Vault.Data;
 using Vault.Helpers;
 using Vault.IGDB;
 using System.Xml.Linq;
+using Vault.Http;
 
 namespace Vault.Commands;
 
 public class GameListCommand : AsyncCommand<GameListSettings> {
   private readonly MessageService _messageSvc;
+  private readonly HttpService _httpSvc;
 
   public GameListCommand(MessageService messageSvc) {
     _messageSvc = messageSvc;
+    _httpSvc = new HttpService(4, 1, 8);
   }
 
   public override async Task<int> ExecuteAsync(CommandContext context, GameListSettings settings, CancellationToken _cancellationToken) {
@@ -30,7 +33,6 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
     var imagePath = @$"{settings.DefaultDestination}/images";
     if (!settings.NoImages && !Directory.Exists(imagePath)) Directory.CreateDirectory(imagePath);
 
-    using var http = new HttpClient();
     var gameElements = new ConcurrentBag<XElement>();
 
     await ConsoleHelper.Build(
@@ -38,7 +40,7 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
       settings,
       totalWork: files.Count,
       maxConcurrency: 100,
-      processFile: (file, fileName, displayName, task) => Process(http, file, fileName, settings, task, gameElements),
+      processFile: (file, fileName, displayName, task) => Process(file, fileName, settings, task, gameElements),
       getNames: file => {
         var filePath = file.FullName;
         var name = SplitPath(filePath);
@@ -55,7 +57,6 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
   }
 
   public async Task Process(
-    HttpClient http,
     FileInfo fileInfo,
     string fileName,
     GameListSettings settings,
@@ -64,7 +65,7 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
   ) {
     var metadata = MetadataHelper.Parse(fileInfo);
     
-    if (!settings.NoImages) await DownloadImages(http, metadata, fileName, settings);
+    if (!settings.NoImages) await DownloadImages(metadata, fileName, settings);
 
     progress.Increment(1);
 
@@ -78,30 +79,27 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
     );
   }
 
-  private async Task DownloadImages(HttpClient http, Metadata metadata, string name, GameListSettings settings) {
-    var url = "https:" + metadata.Media.Cover;
-    
-    var imagesDir = Path.Combine(settings.WritePath, "images");
-    var outputFile = Path.Combine(imagesDir, $"{name}.jpg");
+  private async Task DownloadImages(Metadata metadata, string name, GameListSettings settings) {
+    var url = $"https:{metadata.Media.Cover}";
+    var imagesDir = $"{settings.WritePath}/images";
+    var outputFile = $"{imagesDir}/{name}.jpg";
 
-    using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+    using var response = await _httpSvc.GetAsync(url);
     response.EnsureSuccessStatusCode();
 
-    await using var src = await response.Content.ReadAsStreamAsync();
-    await using var dst = File.Create(outputFile);
+    await using var source = await response.Content.ReadAsStreamAsync();
+    using var destination = File.Create(outputFile);
 
-    await src.CopyToAsync(dst);
+    await source.CopyToAsync(destination);
   }
 
   public List<FileInfo> GetFiles(GameListSettings settings) {
     var result = new List<FileInfo>();
 
     foreach (var gameDir in Directory.EnumerateDirectories(settings.ReadPath)) {
-      var gameName = Path.GetFileName(gameDir);
+      var gameName = GetGameName(Path.GetFileName(gameDir));
 
-      if (!string.IsNullOrEmpty(settings.Name) &&
-          !string.Equals(gameName, settings.Name, StringComparison.OrdinalIgnoreCase))
-        continue;
+      if (!string.IsNullOrEmpty(settings.Name) && gameName != settings.Name) continue;
 
       var metaPath = GetMetadataPath(gameDir);
       if (metaPath == null) continue;
@@ -124,5 +122,13 @@ public class GameListCommand : AsyncCommand<GameListSettings> {
 
   private string SplitPath(string value, int index = 4) {
     return value.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[index].Split(" - ", 2)[1];
+  }
+
+  public string GetGameName(string folderName) {
+    var index = folderName.IndexOf(" - ", StringComparison.Ordinal);
+
+    return index >= 0
+      ? folderName[(index + 3)..]
+      : folderName;
   }
 }

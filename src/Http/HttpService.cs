@@ -46,16 +46,6 @@ public sealed class HttpService : IDisposable {
           await Task.Delay(RetryDelayMs, ct);
           continue;
         }
-        // catch (TaskCanceledException) when (!ct.IsCancellationRequested) {
-        //   if (attempt >= maxRetries) throw;
-        //   await Task.Delay(RetryDelayMs, ct);
-        //   continue;
-        // }
-        // catch (HttpRequestException) {
-        //   if (attempt >= maxRetries) throw;
-        //   await Task.Delay(RetryDelayMs, ct);
-        //   continue;
-        // }
         catch (Exception ex) {
           Console.WriteLine(ex.GetType().FullName);
           Console.WriteLine(ex.Message);
@@ -66,5 +56,9 @@ public sealed class HttpService : IDisposable {
         _concurrency.Release();
       }
     }
+  }
+
+  public async Task<HttpResponseMessage> GetAsync(string url) {
+    return await _client.GetAsync(url);
   }
 }

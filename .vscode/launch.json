@@ -11,9 +11,11 @@
       "preLaunchTask": "build",
       "program": "${workspaceFolder}/bin/Debug/net11.0/Vault.dll",
       "args": [
-        "import",
+        "gamelist",
         "-c",
-        "nds"
+        "gba",
+        "-n",
+        "Metroid Fusion"
       ],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
