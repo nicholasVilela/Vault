@@ -15,9 +15,11 @@ public partial class IgdbService : IDisposable {
     return request;
   }
 
-  public Func<HttpRequestMessage> CreatePlatformRequest(string token, string name) {
+  public Func<Task<HttpRequestMessage>> CreatePlatformRequest(string name) {
     var queryName = name.Replace("\"", "\\\"").ToLowerInvariant();
-    var request = () => {
+    var request = async () => {
+      var token = await GetToken();
+
       var url = IgdbRoutes.Platforms;
       var req = new HttpRequestMessage(HttpMethod.Post, url);
       req.Headers.Add("Client-ID", _options.ClientId);
@@ -35,8 +37,9 @@ public partial class IgdbService : IDisposable {
     return request;
   }
 
-  public Func<HttpRequestMessage> CreateGameRequest(string token, int platformId, string queryName) {
-    var request = () => {
+  public Func<Task<HttpRequestMessage>> CreateGameRequest(int platformId, string queryName) {
+    var request = async () => {
+      var token = await GetToken();
       var url = IgdbRoutes.Games;
       var req = new HttpRequestMessage(HttpMethod.Post, url);
       req.Headers.Add("Client-ID", _options.ClientId);
@@ -55,8 +58,10 @@ public partial class IgdbService : IDisposable {
     return request;
   }
 
-  public Func<HttpRequestMessage> GetMediaRequest(string token, int gameId, int screenshotLimit) {
-    var request = () => {
+  public Func<Task<HttpRequestMessage>> GetMediaRequest(int gameId, int screenshotLimit) {
+    var request = async () => {
+      var token = await GetToken();
+
       var url = IgdbRoutes.Multiquery;
       var req = new HttpRequestMessage(HttpMethod.Post, url);
       req.Headers.Add("Client-ID", _options.ClientId);
@@ -86,7 +91,6 @@ public partial class IgdbService : IDisposable {
     if (HasValidToken()) return _accessToken;
     
     using var response = await _httpSvc.SendLimitedAsync(CreateTokenRequest(), ct: ct);
-    response.EnsureSuccessStatusCode();
 
     var token = await response.Content.ReadFromJsonAsync<IgdbTokenResponse>(ct);
     _accessToken = token.AccessToken;
@@ -96,10 +100,7 @@ public partial class IgdbService : IDisposable {
   }
 
   private async Task<IgdbResult<IgdbPlatform>> ProcessPlatformRequest(string name) {
-    var token = await GetToken();
-
-    using var response = await _httpSvc.SendLimitedAsync(CreatePlatformRequest(token, name));
-    response.EnsureSuccessStatusCode();
+    using var response = await _httpSvc.SendLimitedAsync(CreatePlatformRequest(name));
 
     var platforms = await response.Content.ReadFromJsonAsync<List<IgdbPlatform>>();
     if (platforms == null || platforms.Count == 0) return IgdbResult<IgdbPlatform>.NotFoundResult;
@@ -108,12 +109,8 @@ public partial class IgdbService : IDisposable {
   }
 
   private async Task<IgdbResult<IgdbGame>> ProcessGameRequest(string name, IgdbPlatform platform) {
-    var token = await GetToken();
-
     var queryName = name.Replace("\"", "\\\"");
-
-    using var response = await _httpSvc.SendLimitedAsync(CreateGameRequest(token, platform.Id, queryName));
-    response.EnsureSuccessStatusCode();
+    using var response = await _httpSvc.SendLimitedAsync(CreateGameRequest(platform.Id, queryName));
 
     var games = await response.Content.ReadFromJsonAsync<List<IgdbGame>>();
     if (games == null || games.Count == 0) return IgdbResult<IgdbGame>.NotFoundResult;
@@ -128,10 +125,7 @@ public partial class IgdbService : IDisposable {
   }
 
   private async Task<IgdbResult<IgdbMedia>> ProcessMediaRequest(int gameId, int screenshotLimit = 10) {
-    var token = await GetToken();
-    
-    using var response = await _httpSvc.SendLimitedAsync(GetMediaRequest(token, gameId, screenshotLimit));
-    response.EnsureSuccessStatusCode();
+    using var response = await _httpSvc.SendLimitedAsync(GetMediaRequest(gameId, screenshotLimit));
     
     var items = await response.Content.ReadFromJsonAsync<List<IgdbMultiQueryItem>>();
     if (items == null || items.Count == 0) return IgdbResult<IgdbMedia>.NotFoundResult;
