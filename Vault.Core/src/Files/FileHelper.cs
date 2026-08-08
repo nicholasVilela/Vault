@@ -1,6 +1,6 @@
 using System.IO.Compression;
 
-namespace Vault.Cli.Files;
+namespace Vault.Core.Files;
 
 public static class FileHelper {
   const int BufferSize = 81920;

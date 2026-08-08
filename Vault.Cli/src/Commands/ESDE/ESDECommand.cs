@@ -1,7 +1,7 @@
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Vault.Cli.Renderer;
-using Vault.Cli.Files;
+using Vault.Core.Files;
 using Vault.Cli.Job;
 using Vault.Core.Message;
 

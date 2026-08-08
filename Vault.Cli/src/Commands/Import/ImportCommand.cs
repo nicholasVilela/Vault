@@ -5,7 +5,7 @@ using Vault.Cli.Renderer;
 using Vault.Core.IGDB;
 using Vault.Core.IGDB.Data;
 using Vault.Cli.Metadata;
-using Vault.Cli.Files;
+using Vault.Core.Files;
 using Vault.Cli.Job;
 
 namespace Vault.Cli.Commands;
