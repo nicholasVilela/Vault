@@ -2,8 +2,9 @@ using Spectre.Console;
 using Vault.Commands;
 using Vault.Extensions;
 using Vault.Message;
+using Vault.Renderer;
 
-namespace Vault.Renderer;
+namespace Vault.Job;
 
 public class JobService<TSettings> : IDisposable where TSettings : BaseSettings {
   public void Dispose() {}

@@ -1,8 +1,9 @@
 using Spectre.Console;
 using Vault.Commands;
 using Vault.Message;
+using Vault.Renderer;
 
-namespace Vault.Renderer;
+namespace Vault.Job;
 
 public class JobServiceBuilder<TSettings> where TSettings : BaseSettings {
   private Func<FileInfo, (string name, string displayName)> _onGetNames { get; set; }
@@ -62,7 +63,7 @@ public class JobServiceBuilder<TSettings> where TSettings : BaseSettings {
   }
 
   public async Task Run(MessageService messageSvc) {
-    var job = new JobService<TSettings>(messageSvc);
+    using var job = new JobService<TSettings>(messageSvc);
 
     if (_onGetNames != null) job.OnGetNames += _onGetNames;
     if (_onProcess  != null) job.OnProcess  += _onProcess;

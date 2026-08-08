@@ -3,6 +3,7 @@ using Spectre.Console.Cli;
 using Vault.Message;
 using Vault.Renderer;
 using Vault.Files;
+using Vault.Job;
 
 namespace Vault.Commands;
 

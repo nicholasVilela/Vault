@@ -6,6 +6,7 @@ using Vault.IGDB;
 using Vault.IGDB.Data;
 using Vault.Metadata;
 using Vault.Files;
+using Vault.Job;
 
 namespace Vault.Commands;
 

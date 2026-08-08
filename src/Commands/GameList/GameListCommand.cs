@@ -7,6 +7,7 @@ using Vault.Renderer;
 using System.Xml.Linq;
 using Vault.Http;
 using Vault.Metadata;
+using Vault.Job;
 
 namespace Vault.Commands;
 

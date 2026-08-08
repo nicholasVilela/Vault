@@ -5,6 +5,7 @@ using Vault.Renderer;
 using Vault.IGDB;
 using Vault.IGDB.Data;
 using Vault.Metadata;
+using Vault.Job;
 
 namespace Vault.Commands;
 
