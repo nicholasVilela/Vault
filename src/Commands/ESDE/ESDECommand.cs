@@ -15,20 +15,18 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
   }
 
   public override async Task<int> ExecuteAsync(CommandContext context, ESDESettings settings, CancellationToken _cancellationToken) {
-    // Directory.CreateDirectory($"{settings.WritePath}/gamelists");
-    // Directory.CreateDirectory($"{settings.WritePath}/downloaded_media");
+    Directory.CreateDirectory($"{settings.WritePath}/gamelists");
+    Directory.CreateDirectory($"{settings.WritePath}/downloaded_media");
 
-    // await ConsoleBuilder.Build(
-    //   getFiles: _ => GetFiles(settings),
-    //   settings,
-    //   totalWork: files => files.Count * OverheadUnitsPerGame,
-    //   maxConcurrency: 100,
-    //   processFile: (file, fileName, displayName, task) => Process(fileName, displayName, settings, task),
-    //   getNames: file => (file.FullName, GetConsoleName(file.Name.ToLower())),
-    //   displayPlatform: false,
-    //   suffix: "Console",
-    //   messageSvc: _messageSvc
-    // );
+    await new JobServiceBuilder<ESDESettings>()
+      .WithSettings(settings)
+      .WithJobOptions(new JobOptions(100))
+      .WithRenderOptions(new RenderOptions(true, "Console"))
+      .GetFiles(_ => GetFiles(settings))
+      .GetNames(file => (file.FullName, GetConsoleName(file.Name.ToLower())))
+      .GetProcess((file, fileName, displayName, task) => Process(fileName, displayName, settings, task))
+      .GetWork(files => files.Count * OverheadUnitsPerGame)
+      .Run(_messageSvc);
 
     return 0;
   }

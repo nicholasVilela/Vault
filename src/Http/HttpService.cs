@@ -35,7 +35,6 @@ public sealed class HttpService : IDisposable {
         HttpResponseMessage response = null;
         try {
           response = await _client.SendAsync(await request, ct);
-          response.EnsureSuccessStatusCode();
 
           if (response.StatusCode != HttpStatusCode.TooManyRequests) return response;
           if (attempt >= maxRetries) return response;
