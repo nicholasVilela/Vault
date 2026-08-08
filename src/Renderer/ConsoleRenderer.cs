@@ -5,7 +5,7 @@ using Vault.Message;
 
 namespace Vault.Renderer;
 
-public static partial class ConsoleBuilder {
+public static class ConsoleRenderer {
   public static IRenderable RenderHook(
     int fileCount,
     BaseSettings settings,

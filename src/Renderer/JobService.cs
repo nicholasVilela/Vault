@@ -30,16 +30,7 @@ public class JobService<TSettings> : IDisposable where TSettings : BaseSettings 
     _messageSvc = messageSvc;
   }
 
-  public async Task Run(
-    // JobOptions jobOptions,
-    // RenderOptions renderOptions
-    // Func<TSettings, List<FileInfo>> getFiles,
-    // Func<FileInfo, (string name, string displayName)> getNames,
-    // Func<FileInfo, string, string, ProgressTask, Task> process,
-    // Func<List<FileInfo>, long> getWork,
-    // Func<bool> validate = null,
-    // Action finalize = null
-  ) {
+  public async Task Run() {
     var processed = _processed;
     var skipped = _skipped;
 
@@ -50,7 +41,7 @@ public class JobService<TSettings> : IDisposable where TSettings : BaseSettings 
         new RemainingTimeColumn()
         )
       .UseRenderHook((renderable, tasks) =>
-        ConsoleBuilder.RenderHook(
+        ConsoleRenderer.RenderHook(
           _fileCount,
           Settings,
           renderable,
