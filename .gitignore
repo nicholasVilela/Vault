@@ -1,5 +1,5 @@
-/bin
-/obj
-/logs
-/nupkg
+**/bin
+**/obj
+**/logs
+**/nupkg
 build.txt

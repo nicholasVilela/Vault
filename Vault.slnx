@@ -1,0 +1,5 @@
+<Solution>
+  <!-- <Project Path="Vault.Api/Vault.Api.csproj" /> -->
+  <Project Path="Vault.Cli/Vault.Cli.csproj" />
+  <Project Path="Vault.Core/Vault.Core.csproj" />
+</Solution>
