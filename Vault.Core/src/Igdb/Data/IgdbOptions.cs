@@ -1,4 +1,4 @@
-namespace Vault.IGDB.Data;
+namespace Vault.Core.IGDB.Data;
 
 public sealed class IgdbOptions {
   public string ClientId { get; set; }

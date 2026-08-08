@@ -1,11 +1,11 @@
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Vault.Message;
-using Vault.Renderer;
-using Vault.Files;
-using Vault.Job;
+using Vault.Core.Message;
+using Vault.Cli.Renderer;
+using Vault.Cli.Files;
+using Vault.Cli.Job;
 
-namespace Vault.Commands;
+namespace Vault.Cli.Commands;
 
 public class ExportCommand : AsyncCommand<ExportSettings> {
   private readonly MessageService _messageSvc;

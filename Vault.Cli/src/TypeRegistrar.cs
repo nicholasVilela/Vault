@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 
-namespace Vault.IGDB;
+namespace Vault.Cli;
 
 public sealed class TypeRegistrar(IServiceCollection services) : ITypeRegistrar {
   public ITypeResolver Build() {

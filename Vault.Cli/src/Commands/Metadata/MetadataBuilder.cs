@@ -1,14 +1,14 @@
 using System.Text;
 using Spectre.Console;
-using Vault.Commands;
-using Vault.Metadata.Data;
-using Vault.IGDB.Data;
-using Vault.Message;
+using Vault.Cli.Commands;
+using Vault.Cli.Metadata.Data;
+using Vault.Core.IGDB.Data;
+using Vault.Core.Message;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using Vault.Files;
+using Vault.Cli.Files;
 
-namespace Vault.Metadata;
+namespace Vault.Cli.Metadata;
 
 public static class MetadataBuilder {
   public static string Build(

@@ -1,14 +1,14 @@
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Vault.Message;
-using Vault.Renderer;
-using Vault.IGDB;
-using Vault.IGDB.Data;
-using Vault.Metadata;
-using Vault.Files;
-using Vault.Job;
+using Vault.Core.Message;
+using Vault.Cli.Renderer;
+using Vault.Core.IGDB;
+using Vault.Core.IGDB.Data;
+using Vault.Cli.Metadata;
+using Vault.Cli.Files;
+using Vault.Cli.Job;
 
-namespace Vault.Commands;
+namespace Vault.Cli.Commands;
 
 public class ImportCommand : AsyncCommand<ImportSettings> {
   private readonly IgdbService _igdbSvc;

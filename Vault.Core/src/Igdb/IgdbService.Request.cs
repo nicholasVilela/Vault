@@ -1,8 +1,8 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
-using Vault.IGDB.Data;
+using Vault.Core.IGDB.Data;
 
-namespace Vault.IGDB;
+namespace Vault.Core.IGDB;
 
 public partial class IgdbService : IDisposable {
   public Func<HttpRequestMessage> CreateTokenRequest() {

@@ -1,4 +1,4 @@
-namespace Vault.Extensions;
+namespace Vault.Core.Extensions;
 
 public static class TaskExtensions {
   public static async Task<T> Catch<T>(this Task<T> task, Action<Exception> action) {

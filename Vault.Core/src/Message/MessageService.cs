@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace Vault.Message;
+namespace Vault.Core.Message;
 
 public class MessageService : IDisposable {
   public ConcurrentBag<string> Warnings { get; set; } = new();

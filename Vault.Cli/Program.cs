@@ -1,10 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
-using Vault.Commands;
-using Vault.Message;
-using Vault.IGDB;
-using Vault.IGDB.Data;
+using Vault.Cli;
+using Vault.Cli.Commands;
+using Vault.Core.Message;
+using Vault.Core.IGDB;
+using Vault.Core.IGDB.Data;
 
 class Program {
   static int Main(string[] args) {

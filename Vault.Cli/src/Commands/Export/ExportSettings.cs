@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using Spectre.Console.Cli;
 
-namespace Vault.Commands;
+namespace Vault.Cli.Commands;
 
 public class ExportSettings : BaseSettings {
   public override string Title => "Export";

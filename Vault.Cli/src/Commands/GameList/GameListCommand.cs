@@ -1,15 +1,15 @@
 using System.Collections.Concurrent;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Vault.Message;
-using Vault.Metadata.Data;
-using Vault.Renderer;
+using Vault.Core.Message;
+using Vault.Cli.Metadata.Data;
+using Vault.Cli.Renderer;
 using System.Xml.Linq;
-using Vault.Http;
-using Vault.Metadata;
-using Vault.Job;
+using Vault.Core.Http;
+using Vault.Cli.Metadata;
+using Vault.Cli.Job;
 
-namespace Vault.Commands;
+namespace Vault.Cli.Commands;
 
 public class GamelistCommand : AsyncCommand<GamelistSettings> {
   private readonly MessageService _messageSvc;

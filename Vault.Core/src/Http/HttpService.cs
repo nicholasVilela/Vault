@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace Vault.Http;
+namespace Vault.Core.Http;
 
 public sealed class HttpService : IDisposable {
   private readonly HttpClient _client;

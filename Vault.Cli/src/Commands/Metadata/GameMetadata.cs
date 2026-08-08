@@ -1,4 +1,4 @@
-namespace Vault.Metadata.Data;
+namespace Vault.Cli.Metadata.Data;
 
 public record struct GameMetadata {
   public string Title { get; set; }

@@ -1,4 +1,4 @@
-namespace Vault.Http;
+namespace Vault.Core.Http;
 
 public sealed class RequestLimiter {
   readonly int _limit;

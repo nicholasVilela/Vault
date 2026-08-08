@@ -1,10 +1,10 @@
 using Spectre.Console;
-using Vault.Commands;
-using Vault.Extensions;
-using Vault.Message;
-using Vault.Renderer;
+using Vault.Cli.Commands;
+using Vault.Core.Extensions;
+using Vault.Core.Message;
+using Vault.Cli.Renderer;
 
-namespace Vault.Job;
+namespace Vault.Cli.Job;
 
 public class JobDispatcher<TSettings> where TSettings : BaseSettings {
   private Func<FileInfo, (string name, string displayName)> _onGetNames { get; set; }

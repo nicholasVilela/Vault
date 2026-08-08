@@ -1,3 +1,3 @@
-namespace Vault.Job;
+namespace Vault.Cli.Job;
 
 public record struct JobOptions(int MaxThreads);

@@ -1,4 +1,4 @@
-namespace Vault.Commands;
+namespace Vault.Cli.Commands;
 
 public class MetadataSettings : BaseSettings {
   public override string Title => "Metadata";

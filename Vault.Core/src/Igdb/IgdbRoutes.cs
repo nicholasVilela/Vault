@@ -1,4 +1,4 @@
-namespace Vault.IGDB;
+namespace Vault.Core.IGDB;
 
 public static class IgdbRoutes {
     private static string BaseApi => "https://api.igdb.com";

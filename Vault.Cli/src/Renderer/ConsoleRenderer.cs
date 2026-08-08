@@ -1,9 +1,9 @@
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using Vault.Commands;
-using Vault.Message;
+using Vault.Cli.Commands;
+using Vault.Core.Message;
 
-namespace Vault.Renderer;
+namespace Vault.Cli.Renderer;
 
 public static class ConsoleRenderer {
   public static IRenderable RenderHook(

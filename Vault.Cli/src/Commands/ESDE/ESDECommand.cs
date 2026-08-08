@@ -1,11 +1,11 @@
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Vault.Message;
-using Vault.Renderer;
-using Vault.Files;
-using Vault.Job;
+using Vault.Cli.Renderer;
+using Vault.Cli.Files;
+using Vault.Cli.Job;
+using Vault.Core.Message;
 
-namespace Vault.Commands;
+namespace Vault.Cli.Commands;
 
 public class ESDECommand : AsyncCommand<ESDESettings> {
   private readonly MessageService _messageSvc;

@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
-using Vault.Message;
-using Vault.Extensions;
-using Vault.Http;
-using Vault.IGDB.Data;
+using Vault.Core.Message;
+using Vault.Core.Extensions;
+using Vault.Core.Http;
+using Vault.Core.IGDB.Data;
 
-namespace Vault.IGDB;
+namespace Vault.Core.IGDB;
 
 public partial class IgdbService : IDisposable {
   private readonly IgdbOptions _options;
