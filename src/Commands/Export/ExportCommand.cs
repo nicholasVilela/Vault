@@ -63,7 +63,7 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
       .ToList();
   }
 
-  private string SplitPath(string value, int index = 3) {
+  private string SplitPath(string value, int index = 4) {
     return value.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[index].Split(" - ", 2)[1];
   }
 
