@@ -17,7 +17,7 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
   const long OverheadUnitsPerGame = 1024 * 1024;
 
   public override async Task<int> ExecuteAsync(CommandContext context, ExportSettings settings, CancellationToken _cancellationToken) {
-    await new JobServiceBuilder<ExportSettings>()
+    await new JobDispatcher<ExportSettings>()
       .WithSettings(settings)
       .WithJobOptions(new JobOptions(100))
       .WithRenderOptions(new RenderOptions(true, "Game"))

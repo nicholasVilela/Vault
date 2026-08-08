@@ -19,7 +19,7 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
     Directory.CreateDirectory($"{settings.WritePath}/gamelists");
     Directory.CreateDirectory($"{settings.WritePath}/downloaded_media");
 
-    await new JobServiceBuilder<ESDESettings>()
+    await new JobDispatcher<ESDESettings>()
       .WithSettings(settings)
       .WithJobOptions(new JobOptions(100))
       .WithRenderOptions(new RenderOptions(true, "Console"))

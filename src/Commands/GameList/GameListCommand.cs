@@ -26,7 +26,7 @@ public class GamelistCommand : AsyncCommand<GamelistSettings> {
 
     var gameElements = new ConcurrentBag<XElement>();
 
-    await new JobServiceBuilder<GamelistSettings>()
+    await new JobDispatcher<GamelistSettings>()
       .WithSettings(settings)
       .WithJobOptions(new JobOptions(100))
       .WithRenderOptions(new RenderOptions(true, "Game"))

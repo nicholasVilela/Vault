@@ -21,7 +21,7 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
   const int OverheadUnitsPerGame = 3;
 
   public override async Task<int> ExecuteAsync(CommandContext context, MetadataSettings settings, CancellationToken _cancellationToken) {
-    await new JobServiceBuilder<MetadataSettings>()
+    await new JobDispatcher<MetadataSettings>()
       .WithSettings(settings)
       .WithJobOptions(new JobOptions(100))
       .WithRenderOptions(new RenderOptions(true, "Game"))
