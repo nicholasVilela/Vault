@@ -1,4 +1,4 @@
-namespace Vault.Cli;
+namespace Vault.Core.Encode;
 
 public static class Encoder {
   private const string Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";

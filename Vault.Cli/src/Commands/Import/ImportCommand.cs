@@ -7,6 +7,7 @@ using Vault.Core.IGDB.Data;
 using Vault.Cli.Metadata;
 using Vault.Core.Files;
 using Vault.Cli.Job;
+using Vault.Core.Encode;
 
 namespace Vault.Cli.Commands;
 
