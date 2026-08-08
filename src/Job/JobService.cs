@@ -11,8 +11,6 @@ public class JobService<TSettings> : IDisposable where TSettings : BaseSettings 
 
   private readonly MessageService _messageSvc;
 
-  private int _processed { get; set; }
-  private int _skipped { get; set; }
   private int _fileCount { get => Volatile.Read(ref field); set => Volatile.Write(ref field, value); }
 
   public TSettings Settings { get; set; }
@@ -20,7 +18,7 @@ public class JobService<TSettings> : IDisposable where TSettings : BaseSettings 
   public RenderOptions RenderOptions { get; set; }
 
   public Func<FileInfo, (string name, string displayName)> OnGetNames { get; set; }
-  public Func<FileInfo, string, string, ProgressTask, Task> OnProcess { get; set; }
+  public Func<FileInfo, string, string, ProgressTask, Task<JobResult>> OnProcess { get; set; }
   public Func<TSettings, List<FileInfo>> OnGetFiles { get; set; }
   public Func<List<FileInfo>, long> OnGetWork { get; set; }
   public Func<bool> OnValidate { get; set; }
@@ -32,8 +30,8 @@ public class JobService<TSettings> : IDisposable where TSettings : BaseSettings 
   }
 
   public async Task Run() {
-    var processed = _processed;
-    var skipped = _skipped;
+    var processed = 0;
+    var skipped = 0;
 
     await AnsiConsole.Progress()
       .Columns(
@@ -73,6 +71,7 @@ public class JobService<TSettings> : IDisposable where TSettings : BaseSettings 
           tasks.Add(Task.Run(async () => {
             await semaphore.WaitAsync();
             await OnProcess(file, name, displayName, masterTask)
+              .OnSkipAsync(async () => Interlocked.Increment(ref skipped))
               .Catch(ex => _messageSvc.Error($"Error processing {displayName}: {ex.Message}"))
               .Finally(() => {
                 semaphore.Release();

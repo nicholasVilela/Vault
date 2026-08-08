@@ -7,7 +7,7 @@ namespace Vault.Job;
 
 public class JobServiceBuilder<TSettings> where TSettings : BaseSettings {
   private Func<FileInfo, (string name, string displayName)> _onGetNames { get; set; }
-  private Func<FileInfo, string, string, ProgressTask, Task> _onProcess { get; set; }
+  private Func<FileInfo, string, string, ProgressTask, Task<JobResult>> _onProcess { get; set; }
   private Func<TSettings, List<FileInfo>> _onGetFiles { get; set; }
   private Func<List<FileInfo>, long> _onGetWork { get; set; }
   private Func<bool> _onValidate { get; set; }
@@ -22,7 +22,7 @@ public class JobServiceBuilder<TSettings> where TSettings : BaseSettings {
     return this;
   }
 
-  public JobServiceBuilder<TSettings> GetProcess(Func<FileInfo, string, string, ProgressTask, Task> func) {
+  public JobServiceBuilder<TSettings> GetProcess(Func<FileInfo, string, string, ProgressTask, Task<JobResult>> func) {
     _onProcess += func;
     return this;
   }

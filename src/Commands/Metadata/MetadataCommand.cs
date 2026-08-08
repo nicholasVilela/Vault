@@ -30,11 +30,10 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
           _messageSvc.Error("Console is required with '-c' or '--console'");
           return false;
         }
-
         return true;
       })
       .Validate(() => {
-        if (!Directory.Exists("sdfsdf")) {
+        if (!Directory.Exists(settings.ReadPath)) {
           _messageSvc.Error($"Path does not exist: '{settings.ReadPath}'");
           return false;
         }
@@ -55,17 +54,22 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
     return 0;
   }
 
-  public async Task Process(
+  public async Task<JobResult> Process(
     string fileName,
     string displayName,
     MetadataSettings settings,
     IgdbService igdbSvc,
     ProgressTask progress
   ) {
-    await igdbSvc
+    var result = await igdbSvc
       .GetGame(displayName, settings.Console, _messageSvc)
       .OnSuccessAsync(game => Success(fileName, game, settings, progress, igdbSvc))
       .OnNotFoundAsync(() => NotFound(displayName, progress));
+
+    return result switch {
+      Success<IgdbGame> => JobResult.SuccessResult,
+      _ => JobResult.SkipResult
+    };
   }
 
   private async Task Success(string fileName, IgdbGame game, MetadataSettings settings, ProgressTask progress, IgdbService igdbSvc) {

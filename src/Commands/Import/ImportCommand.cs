@@ -56,7 +56,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     return 0;
   }
 
-  async Task Process(
+  async Task<JobResult> Process(
     FileInfo fileInfo,
     string name,
     string displayName,
@@ -64,10 +64,15 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     ProgressTask progress,
     IgdbService igdbSvc
   ) {
-    await igdbSvc
+    var result = await igdbSvc
       .GetGame(displayName, settings.Console, _messageSvc)
       .OnSuccessAsync(game => Success(fileInfo, game, name, settings, progress, igdbSvc))
       .OnNotFoundAsync(() => NotFound(fileInfo, displayName, progress));
+
+    return result switch {
+      Success<IgdbGame> s => JobResult.SuccessResult,
+      _ => JobResult.SkipResult
+    };
   }
 
   private async Task Success(

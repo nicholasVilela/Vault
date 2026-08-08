@@ -51,7 +51,7 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
     return 0;
   }
 
-  private async Task Process(FileInfo file, string name, ExportSettings settings, ProgressTask task) {
+  private async Task<JobResult> Process(FileInfo file, string name, ExportSettings settings, ProgressTask task) {
     task.Increment(OverheadUnitsPerGame);
 
     Directory.CreateDirectory(settings.WritePath);
@@ -59,6 +59,8 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
     var destPath = $"{settings.WritePath}/{name}.zip";
     await GetProgress(task, file.Length, progress => FileHelper.Copy(file.FullName, destPath, progress));
     if (settings.Extract) await GetProgress(task, FileHelper.ExtractBytes(file), progress => FileHelper.Extract(destPath, progress));
+
+    return JobResult.SuccessResult;
   }
 
   public List<FileInfo> GetFiles(ExportSettings settings) {

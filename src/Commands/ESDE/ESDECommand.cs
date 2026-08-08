@@ -32,7 +32,7 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
     return 0;
   }
 
-  public async Task Process(
+  public async Task<JobResult> Process(
     string folderPath,
     string console,
     ESDESettings settings,
@@ -40,7 +40,7 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
   ) {
     if (!Directory.Exists(folderPath)) {
       _messageSvc.Error($"Console does not exist: '{console}'");
-      return;
+      return JobResult.SkipResult;
     }
 
     var sourceGamelistPath = $"{folderPath}/gamelist.xml";
@@ -54,6 +54,8 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
     Directory.CreateDirectory(targetImagesPath);
     foreach (var imagePath in Directory.EnumerateFiles(sourceImagesPath)) await FileHelper.Copy(imagePath, $"{targetImagesPath}/{new FileInfo(imagePath).Name}");
     progress.Increment(1);
+
+    return JobResult.SuccessResult;
   }
 
   public List<FileInfo> GetFiles(ESDESettings settings) {

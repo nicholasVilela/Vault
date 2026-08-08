@@ -61,7 +61,7 @@ public class GamelistCommand : AsyncCommand<GamelistSettings> {
     return 0;
   }
 
-  public async Task Process(
+  public async Task<JobResult> Process(
     FileInfo fileInfo,
     string fileName,
     GamelistSettings settings,
@@ -82,6 +82,8 @@ public class GamelistCommand : AsyncCommand<GamelistSettings> {
         new XElement("image", $"./images/{fileName}.jpg")
       )
     );
+
+    return JobResult.SuccessResult;
   }
 
   private async Task DownloadImages(GameMetadata metadata, string name, GamelistSettings settings) {
