@@ -10,8 +10,9 @@ public class JobServiceBuilder<TSettings> where TSettings : BaseSettings {
   private Func<FileInfo, string, string, ProgressTask, Task<JobResult>> _onProcess { get; set; }
   private Func<TSettings, List<FileInfo>> _onGetFiles { get; set; }
   private Func<List<FileInfo>, long> _onGetWork { get; set; }
-  private Func<bool> _onValidate { get; set; }
   private Action _onFinalize { get; set; }
+
+  private Dictionary<Func<bool>, Action> _assertions { get; set; } = new();
 
   private JobOptions _jobOptions { get; set; }
   private RenderOptions _renderOptions { get; set; }
@@ -37,13 +38,13 @@ public class JobServiceBuilder<TSettings> where TSettings : BaseSettings {
     return this;
   }
 
-  public JobServiceBuilder<TSettings> Validate(Func<bool> func) {
-    _onValidate += func;
+  public JobServiceBuilder<TSettings> Finalize(Action func) {
+    _onFinalize += func;
     return this;
   }
 
-  public JobServiceBuilder<TSettings> Finalize(Action func) {
-    _onFinalize += func;
+  public JobServiceBuilder<TSettings> Assert(Func<bool> func, Action action) {
+    _assertions.Add(func, action);
     return this;
   }
 
@@ -69,9 +70,9 @@ public class JobServiceBuilder<TSettings> where TSettings : BaseSettings {
     if (_onProcess  != null) job.OnProcess  += _onProcess;
     if (_onGetFiles != null) job.OnGetFiles += _onGetFiles;
     if (_onGetWork  != null) job.OnGetWork  += _onGetWork;
-    if (_onValidate != null) job.OnValidate += _onValidate;
     if (_onFinalize != null) job.OnFinalize += _onFinalize;
 
+    job.Assertions = _assertions;
     job.JobOptions = _jobOptions;
     job.RenderOptions = _renderOptions;
     job.Settings = _settings;

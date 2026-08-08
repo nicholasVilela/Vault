@@ -30,22 +30,8 @@ public class GamelistCommand : AsyncCommand<GamelistSettings> {
       .WithSettings(settings)
       .WithJobOptions(new JobOptions(100))
       .WithRenderOptions(new RenderOptions(true, "Game"))
-      .Validate(() => {
-        if (string.IsNullOrWhiteSpace(settings.Console)) {
-          _messageSvc.Error("Console is required with '-c' or '--console'");
-          return false;
-        }
-
-        return true;
-      })
-      .Validate(() => {
-        if (!Directory.Exists(settings.ReadPath)) {
-          _messageSvc.Error($"Path does not exist: '{settings.ReadPath}'");
-          return false;
-        }
-
-        return true;
-      })
+      .Assert(() => string.IsNullOrEmpty(settings.Console), () => _messageSvc.Error("Console is required with '-c' or '--console'"))
+      .Assert(() => !Directory.Exists(settings.ReadPath), () => _messageSvc.Error($"Path does not exist: '{settings.ReadPath}'"))
       .GetFiles(_ => GetFiles(settings))
       .GetNames(file => {
         var filePath = file.FullName;

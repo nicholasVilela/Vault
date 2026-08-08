@@ -21,9 +21,9 @@ public class JobService<TSettings> : IDisposable where TSettings : BaseSettings 
   public Func<FileInfo, string, string, ProgressTask, Task<JobResult>> OnProcess { get; set; }
   public Func<TSettings, List<FileInfo>> OnGetFiles { get; set; }
   public Func<List<FileInfo>, long> OnGetWork { get; set; }
-  public Func<bool> OnValidate { get; set; }
   public Action OnFinalize { get; set; }
 
+  public Dictionary<Func<bool>, Action> Assertions { get; set; }
 
   public JobService(MessageService messageSvc) {
     _messageSvc = messageSvc;
@@ -49,7 +49,12 @@ public class JobService<TSettings> : IDisposable where TSettings : BaseSettings 
           RenderOptions,
           _messageSvc))
       .StartAsync(async ctx => {
-        if (OnValidate != null && !OnValidate()) return;
+        foreach (var (assertion, action) in Assertions) {
+          if (!assertion()) continue;
+
+          action();
+          return;
+        }
 
         var files = OnGetFiles(Settings);
         if (files.Count == 0) _messageSvc.Error($"No game files found in: '{Settings.ReadPath}'{(!string.IsNullOrEmpty(Settings.Name) ? $" with name: '{Settings.Name}'" : "")}");
