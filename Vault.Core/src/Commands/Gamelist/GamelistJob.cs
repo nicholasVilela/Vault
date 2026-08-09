@@ -7,7 +7,7 @@ using Vault.Core.Job;
 namespace Vault.Core.Commands;
 
 public static class GamelistJob {
-  public static JobDispatcher<GamelistOptions> CreateJob(GamelistOptions settings, MessageService messageSvc, HttpService httpSvc) {    
+  public static JobDispatcher<GamelistOptions> Create(GamelistOptions settings, MessageService messageSvc, HttpService httpSvc) {    
     var imagePath = @$"{settings.DefaultDestination}/images";
     if (!settings.NoImages && !Directory.Exists(imagePath)) Directory.CreateDirectory(imagePath);
 

@@ -7,7 +7,7 @@ namespace Vault.Core.Commands;
 public static class ExportJob {
   const long OverheadUnitsPerGame = 1024 * 1024;
 
-  public static JobDispatcher<ExportOptions> CreateJob(ExportOptions options, MessageService messageSvc) {
+  public static JobDispatcher<ExportOptions> Create(ExportOptions options, MessageService messageSvc) {
     var job = new JobDispatcher<ExportOptions>()
       .WithDispatcherOptions(new JobDispatcherOptions(100))
       .WithJobOptions(options)
