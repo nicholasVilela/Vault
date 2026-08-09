@@ -16,7 +16,7 @@ public class MetadataCommand : AsyncCommand<MetadataSettings> {
   }
 
   public override async Task<int> ExecuteAsync(CommandContext context, MetadataSettings settings, CancellationToken _cancellationToken) {
-    var job = MetadataJob.Create(settings.ToOptions(), _igdbSvc, _messageSvc);
+    var job = MetadataJob.Create(settings, _igdbSvc, _messageSvc);
     await CommandRenderer.Render(job, _messageSvc, new RenderOptions(true, "Game"));
 
     return 0;

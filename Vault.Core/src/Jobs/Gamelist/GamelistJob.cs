@@ -6,13 +6,13 @@ using Vault.Core.Http;
 namespace Vault.Core.Jobs;
 
 public static class GamelistJob {
-  public static JobRunner<GamelistOptions> Create(GamelistOptions settings, MessageService messageSvc, HttpService httpSvc) {    
+  public static JobRunner<IGamelistSettings> Create(IGamelistSettings settings, MessageService messageSvc, HttpService httpSvc) {    
     var imagePath = @$"{settings.DefaultDestination}/images";
     if (!settings.NoImages && !Directory.Exists(imagePath)) Directory.CreateDirectory(imagePath);
 
     var gameElements = new ConcurrentBag<XElement>();
 
-    var job =  new JobRunner<GamelistOptions>()
+    var job =  new JobRunner<IGamelistSettings>()
       .WithDispatcherOptions(new JobRunnerOptions(100))
       .WithJobOptions(settings)
       .Assert(() => string.IsNullOrEmpty(settings.Console), () => messageSvc.Error("Console is required with '-c' or '--console'"))
@@ -34,7 +34,7 @@ public static class GamelistJob {
   public static async Task<JobResult> Process(
     FileInfo fileInfo,
     string fileName,
-    GamelistOptions settings,
+    IGamelistSettings settings,
     Action<long> advance,
     ConcurrentBag<XElement> elements,
     MessageService messageSvc,
@@ -58,7 +58,7 @@ public static class GamelistJob {
     return JobResult.SuccessResult;
   }
 
-  private static async Task DownloadImages(GameMetadata metadata, string name, GamelistOptions settings, MessageService messageSvc, HttpService httpSvc) {
+  private static async Task DownloadImages(GameMetadata metadata, string name, IGamelistSettings settings, MessageService messageSvc, HttpService httpSvc) {
     if (string.IsNullOrEmpty(metadata.Media.Cover)) {
       messageSvc.Warning($"No cover art found for: '{metadata.Title}'");
       return;
@@ -77,7 +77,7 @@ public static class GamelistJob {
     await source.CopyToAsync(destination);
   }
 
-  public static List<FileInfo> GetFiles(GamelistOptions settings) {
+  public static List<FileInfo> GetFiles(IGamelistSettings settings) {
     var result = new List<FileInfo>();
 
     foreach (var gameDir in Directory.EnumerateDirectories(settings.ReadPath)) {

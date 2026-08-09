@@ -69,7 +69,7 @@ public static class MetadataBuilder {
     return deserializer.Deserialize<GameMetadata>(reader);
   }
 
-  public static void BuildAndWrite(string fileName, IgdbGame game, string cover, List<string> screenshots, BaseOptions settings, MessageService messageSvc) {
+  public static void BuildAndWrite(string fileName, IgdbGame game, string cover, List<string> screenshots, IJobSettings settings, MessageService messageSvc) {
     var gameCode = Encoder.Encode(game.Id);
     var gameFolderName = $"{gameCode} - {fileName}";
     var gameFolderPath = Path.Combine(settings.WritePath, gameFolderName);

@@ -7,8 +7,8 @@ namespace Vault.Core.Jobs;
 public static class MetadataJob {
   const int OverheadUnitsPerGame = 3;
 
-  public static JobRunner<MetadataOptions> Create(MetadataOptions settings, IgdbService igdbSvc, MessageService messageSvc) {
-    var job = new JobRunner<MetadataOptions>()
+  public static JobRunner<IMetadataSettings> Create(IMetadataSettings settings, IgdbService igdbSvc, MessageService messageSvc) {
+    var job = new JobRunner<IMetadataSettings>()
       .WithDispatcherOptions(new JobRunnerOptions(100))
       .WithJobOptions(settings)
       .Assert(() => string.IsNullOrEmpty(settings.Console), () => messageSvc.Error("Console is required with '-c' or '--console'"))
@@ -29,7 +29,7 @@ public static class MetadataJob {
   public static async Task<JobResult> Process(
     string fileName,
     string displayName,
-    MetadataOptions settings,
+    IMetadataSettings settings,
     IgdbService igdbSvc,
     MessageService messageSvc,
     Action<long> advance
@@ -45,7 +45,7 @@ public static class MetadataJob {
     };
   }
 
-  private static async Task Success(string fileName, IgdbGame game, MetadataOptions settings, Action<long> advance, IgdbService igdbSvc, MessageService messageSvc) {
+  private static async Task Success(string fileName, IgdbGame game, IMetadataSettings settings, Action<long> advance, IgdbService igdbSvc, MessageService messageSvc) {
     advance(1);
 
     var media = await igdbSvc
@@ -66,7 +66,7 @@ public static class MetadataJob {
     advance(OverheadUnitsPerGame);
   }
 
-  public static List<FileInfo> GetFiles(MetadataOptions settings) {
+  public static List<FileInfo> GetFiles(IMetadataSettings settings) {
     var result = new List<FileInfo>();
 
     foreach (var gameDir in Directory.EnumerateDirectories(settings.ReadPath)) {

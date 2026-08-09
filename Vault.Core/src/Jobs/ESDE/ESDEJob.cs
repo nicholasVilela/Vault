@@ -6,16 +6,16 @@ namespace Vault.Core.Jobs;
 public static class ESDEJob {
   const int OverheadUnitsPerGame = 2;
 
-  public static JobRunner<ESDEOptions> Create(ESDEOptions options, MessageService messageSvc) {
-    Directory.CreateDirectory($"{options.WritePath}/gamelists");
-    Directory.CreateDirectory($"{options.WritePath}/downloaded_media");
+  public static JobRunner<IESDESettings> Create(IESDESettings settings, MessageService messageSvc) {
+    Directory.CreateDirectory($"{settings.WritePath}/gamelists");
+    Directory.CreateDirectory($"{settings.WritePath}/downloaded_media");
 
-    var job = new JobRunner<ESDEOptions>()
+    var job = new JobRunner<IESDESettings>()
       .WithDispatcherOptions(new JobRunnerOptions(100))
-      .WithJobOptions(options)
-      .GetFiles(_ => GetFiles(options))
+      .WithJobOptions(settings)
+      .GetFiles(_ => GetFiles(settings))
       .GetNames(file => (file.FullName, GetConsoleName(file.Name.ToLower())))
-      .GetProcess((file, fileName, displayName, advance) => Process(fileName, displayName, options, advance, messageSvc))
+      .GetProcess((file, fileName, displayName, advance) => Process(fileName, displayName, settings, advance, messageSvc))
       .GetWork(files => files.Count * OverheadUnitsPerGame);
 
     return job;
@@ -24,7 +24,7 @@ public static class ESDEJob {
   public static async Task<JobResult> Process(
     string folderPath,
     string console,
-    ESDEOptions options,
+    IESDESettings options,
     Action<long> advance,
     MessageService messageSvc
   ) {
@@ -48,7 +48,7 @@ public static class ESDEJob {
     return JobResult.SuccessResult;
   }
 
-  public static List<FileInfo> GetFiles(ESDEOptions options) {
+  public static List<FileInfo> GetFiles(IESDESettings options) {
     if (string.IsNullOrEmpty(options.ConsoleCSV)) {
       return Directory.EnumerateDirectories($"{options.Drive}/consoles").Select(file => new FileInfo(file)).Where(file => Path.Exists($"{file.FullName}/gamelist.xml")).ToList();
     }

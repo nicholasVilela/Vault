@@ -6,7 +6,7 @@ using Vault.Core.Message;
 namespace Vault.Cli.Renderer;
 
 public static class CommandRenderer {
-  public async static Task Render<T>(JobRunner<T> job, MessageService messageSvc, RenderOptions options) where T : BaseOptions {
+  public async static Task Render<T>(JobRunner<T> job, MessageService messageSvc, RenderOptions options) where T : IJobSettings {
     await AnsiConsole.Progress()
       .Columns(
         new ProgressBarColumn(),
@@ -43,7 +43,7 @@ public static class CommandRenderer {
 
   public static IRenderable RenderHook(
     JobProgress jobProgress,
-    BaseOptions jobOptions,
+    IJobSettings jobOptions,
     IRenderable renderable,
     RenderOptions renderOptions,
     MessageService messageSvc
@@ -74,7 +74,7 @@ public static class CommandRenderer {
     return layout;
   }
 
-  private static Panel RenderTitle(BaseOptions settings, int width) {
+  private static Panel RenderTitle(IJobSettings settings, int width) {
     var grid =  new Grid()
       .AddColumn(new GridColumn().NoWrap())
       .AddRow(
@@ -90,7 +90,7 @@ public static class CommandRenderer {
     return panel;
   }
 
-  private static Panel RenderInfo(JobProgress progress, BaseOptions jobOptions, RenderOptions options, int width) {
+  private static Panel RenderInfo(JobProgress progress, IJobSettings jobOptions, RenderOptions options, int width) {
     var gameLabel = string.IsNullOrEmpty(options.Suffix) ? "" : progress.FileCount == 1 ? options.Suffix: $"{options.Suffix}s";
     var grid =  new Grid()
       .AddColumn(new GridColumn().PadLeft(0))

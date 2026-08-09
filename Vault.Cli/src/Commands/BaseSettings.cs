@@ -4,10 +4,10 @@ using Vault.Core.Jobs;
 
 namespace Vault.Cli.Commands;
 
-public abstract class BaseSettings : CommandSettings {
-  public virtual string Title { get; set; }
-  public virtual string ReadPath { get; }
-  public virtual string DefaultDestination { get; }
+public abstract class BaseSettings : CommandSettings, IJobSettings {
+  public abstract string Title { get; }
+  public abstract string ReadPath { get; }
+  public abstract string DefaultDestination { get; }
 
   public string WritePath => Destination ?? DefaultDestination;
 
@@ -34,6 +34,4 @@ public abstract class BaseSettings : CommandSettings {
   [CommandOption("-d|--drive")]
   [Description(@"Drive, e.g. Z")]
   public string Drive { get => $@"{field}:"; set; } = "Z";
-
-  public abstract BaseOptions ToOptions();
 }

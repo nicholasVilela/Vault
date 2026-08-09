@@ -12,7 +12,7 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
   }
 
   public override async Task<int> ExecuteAsync(CommandContext context, ESDESettings settings, CancellationToken _cancellationToken) {
-    var job = ESDEJob.Create(settings.ToOptions(), _messageSvc);
+    var job = ESDEJob.Create(settings, _messageSvc);
     await CommandRenderer.Render(job, _messageSvc, new RenderOptions(true, "Console"));
 
     return 0;

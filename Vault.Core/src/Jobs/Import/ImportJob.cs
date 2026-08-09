@@ -9,8 +9,8 @@ namespace Vault.Core.Jobs;
 public static class ImportJob {
   const long OverheadUnitsPerGame = 1024 * 1024;
 
-  public static JobRunner<ImportOptions> Create(ImportOptions options, IgdbService igdbSvc, MessageService messageSvc) {
-    var job = new JobRunner<ImportOptions>()
+  public static JobRunner<IImportSettings> Create(IImportSettings options, IgdbService igdbSvc, MessageService messageSvc) {
+    var job = new JobRunner<IImportSettings>()
       .WithDispatcherOptions(new JobRunnerOptions(100))
       .WithJobOptions(options)
       .Assert(() => string.IsNullOrEmpty(options.Console), () => messageSvc.Error("Console is required with '-c' or '--console'"))
@@ -32,7 +32,7 @@ public static class ImportJob {
     FileInfo fileInfo,
     string name,
     string displayName,
-    ImportOptions settings,
+    IImportSettings settings,
     Action<long> advance,
     IgdbService igdbSvc,
     MessageService messageSvc
@@ -52,7 +52,7 @@ public static class ImportJob {
     FileInfo fileInfo,
     IgdbGame game,
     string name,
-    ImportOptions settings,
+    IImportSettings settings,
     Action<long> advance,
     IgdbService igdbSvc,
     MessageService messageSvc
@@ -121,7 +121,7 @@ public static class ImportJob {
     advance(fileInfo.Length + OverheadUnitsPerGame);
   }
 
-  public static List<FileInfo> GetFiles(ImportOptions settings) {
+  public static List<FileInfo> GetFiles(IImportSettings settings) {
     return Directory
       .GetFiles(settings.ReadPath, "*.zip*")
       .Where(f => string.IsNullOrEmpty(settings.Name) || Path.GetFileNameWithoutExtension(f) == settings.Name)

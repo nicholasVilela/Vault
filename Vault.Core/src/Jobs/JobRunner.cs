@@ -3,7 +3,7 @@ using Vault.Core.Message;
 
 namespace Vault.Core.Jobs;
 
-public class JobRunner<TOption> where TOption : BaseOptions {
+public class JobRunner<TOption> where TOption : IJobSettings {
   private Func<FileInfo, (string name, string displayName)> _onGetNames { get; set; }
   private Func<FileInfo, string, string, Action<long>, Task<JobResult>> _onProcess { get; set; }
   private Func<TOption, List<FileInfo>> _onGetFiles { get; set; }

@@ -15,7 +15,7 @@ public class GamelistCommand : AsyncCommand<GamelistSettings> {
 
   public override async Task<int> ExecuteAsync(CommandContext context, GamelistSettings settings, CancellationToken _cancellationToken) {
     using var httpSvc = new HttpService(4, 1, 8);
-    var job = GamelistJob.Create(settings.ToOptions(), _messageSvc, httpSvc);
+    var job = GamelistJob.Create(settings, _messageSvc, httpSvc);
     await CommandRenderer.Render(job, _messageSvc, new RenderOptions(true, "Game"));
 
     return 0;

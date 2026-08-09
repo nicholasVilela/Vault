@@ -6,8 +6,8 @@ namespace Vault.Core.Jobs;
 public static class ExportJob {
   const long OverheadUnitsPerGame = 1024 * 1024;
 
-  public static JobRunner<ExportOptions> Create(ExportOptions options, MessageService messageSvc) {
-    var job = new JobRunner<ExportOptions>()
+  public static JobRunner<IExportSettings> Create(IExportSettings options, MessageService messageSvc) {
+    var job = new JobRunner<IExportSettings>()
       .WithDispatcherOptions(new JobRunnerOptions(100))
       .WithJobOptions(options)
       .Assert(() => string.IsNullOrEmpty(options.Console), () => messageSvc.Error("Console is required with '-c' or '--console'"))
@@ -28,7 +28,7 @@ public static class ExportJob {
   private static async Task<JobResult> Process(
     FileInfo file,
     string name,
-    ExportOptions options,
+    IExportSettings options,
     Action<long> advance
   ) {
     advance(OverheadUnitsPerGame);
@@ -42,7 +42,7 @@ public static class ExportJob {
     return JobResult.SuccessResult;
   }
 
-  public static List<FileInfo> GetFiles(ExportOptions options) {
+  public static List<FileInfo> GetFiles(IExportSettings options) {
     return Directory.EnumerateDirectories(options.ReadPath)
       .Where(f => Path.GetFileName(f).Contains(" - "))
       .Select(f => new {
