@@ -13,7 +13,7 @@ public static class JobRenderer {
       .Columns(
         new ProgressBarColumn(),
         new PercentageColumn(),
-        new RemainingTimeColumn()
+        new ElapsedTimeColumn()
         )
       .UseRenderHook((renderable, tasks) =>
         RenderHook(
@@ -33,26 +33,10 @@ public static class JobRenderer {
         );
 
         var jobTask = job.Run(messageSvc);
-        var completedWork = 0L;
-
-        while (!jobTask.IsCompleted) {
-          var progress = job.Progress;
-          var increment = progress.CompletedWork - completedWork;
-
-          if (increment > 0) {
-            masterTask.Increment(increment);
-            completedWork = progress.CompletedWork;
-          }
-        }
+        while (!jobTask.IsCompleted) masterTask.Value = job.Progress.CompletedWork;
 
         await jobTask;
-
-        var finalProgress = job.Progress;
-        var finalIncrement = finalProgress.CompletedWork - completedWork;
-
-        if (finalIncrement > 0) {
-          masterTask.Increment(finalIncrement);
-        }
+        masterTask.Value = job.Progress.CompletedWork;
       }
     );
 
