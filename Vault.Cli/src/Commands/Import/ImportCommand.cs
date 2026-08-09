@@ -17,7 +17,7 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
 
   public override async Task<int> ExecuteAsync(CommandContext context, ImportSettings settings, CancellationToken _cancellationToken) {
     var job = ImportJob.Create(settings.ToOptions(), _igdbSvc, _messageSvc);
-    await JobRenderer.Render(job, _messageSvc, new RenderOptions(true, "Game"));
+    await CommandRenderer.Render(job, _messageSvc, new RenderOptions(true, "Game"));
 
     return 0;
   }

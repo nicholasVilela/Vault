@@ -1,8 +1,6 @@
-using Spectre.Console;
 using Spectre.Console.Cli;
 using Vault.Cli.Renderer;
 using Vault.Core.Commands;
-using Vault.Core.Files;
 using Vault.Core.Message;
 
 namespace Vault.Cli.Commands;
@@ -15,7 +13,7 @@ public class ESDECommand : AsyncCommand<ESDESettings> {
 
   public override async Task<int> ExecuteAsync(CommandContext context, ESDESettings settings, CancellationToken _cancellationToken) {
     var job = ESDEJob.CreateJob(settings.ToOptions(), _messageSvc);
-    await JobRenderer.Render(job, _messageSvc, new RenderOptions(true, "Console"));
+    await CommandRenderer.Render(job, _messageSvc, new RenderOptions(true, "Console"));
 
     return 0;
   }

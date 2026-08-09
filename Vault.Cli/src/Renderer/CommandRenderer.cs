@@ -1,13 +1,12 @@
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using Vault.Cli.Commands;
 using Vault.Core.Commands;
 using Vault.Core.Job;
 using Vault.Core.Message;
 
 namespace Vault.Cli.Renderer;
 
-public static class JobRenderer {
+public static class CommandRenderer {
   public async static Task Render<T>(JobDispatcher<T> job, MessageService messageSvc, RenderOptions options) where T : BaseOptions {
     await AnsiConsole.Progress()
       .Columns(
