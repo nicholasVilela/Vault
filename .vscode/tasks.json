@@ -7,7 +7,7 @@
       "type": "process",
       "args": [
         "build",
-        "${workspaceFolder}/Vault.csproj",
+        "${workspaceFolder}/Vault.Cli/Vault.Cli.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary;ForceNoAlign"
       ],
@@ -19,7 +19,7 @@
       "type": "process",
       "args": [
         "publish",
-        "${workspaceFolder}/Vault.csproj",
+        "${workspaceFolder}/Vault.Cli/Vault.Cli.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary;ForceNoAlign"
       ],
@@ -33,7 +33,7 @@
         "watch",
         "run",
         "--project",
-        "${workspaceFolder}/Vault.csproj"
+        "${workspaceFolder}/Vault.Cli/Vault.Cli.csproj"
       ],
       "problemMatcher": "$msCompile"
     }

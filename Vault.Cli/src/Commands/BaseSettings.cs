@@ -1,9 +1,10 @@
 using System.ComponentModel;
 using Spectre.Console.Cli;
+using Vault.Core.Commands;
 
 namespace Vault.Cli.Commands;
 
-public class BaseSettings : CommandSettings {
+public abstract class BaseSettings : CommandSettings {
   public virtual string Title { get; set; }
   public virtual string ReadPath { get; }
   public virtual string DefaultDestination { get; }
@@ -31,6 +32,8 @@ public class BaseSettings : CommandSettings {
   public string Name { get; set; }
 
   [CommandOption("-d|--drive")]
-  [Description(@"Drive, e.g. Z:\")]
+  [Description(@"Drive, e.g. Z")]
   public string Drive { get => $@"{field}:"; set; } = "Z";
+
+  public abstract BaseOptions ToOptions();
 }

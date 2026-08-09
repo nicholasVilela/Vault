@@ -1,13 +1,8 @@
-using Spectre.Console;
 using Spectre.Console.Cli;
 using Vault.Core.Message;
 using Vault.Cli.Renderer;
 using Vault.Core.IGDB;
-using Vault.Core.IGDB.Data;
-using Vault.Cli.Metadata;
-using Vault.Core.Files;
-using Vault.Cli.Job;
-using Vault.Core.Encode;
+using Vault.Core.Commands;
 
 namespace Vault.Cli.Commands;
 
@@ -20,125 +15,10 @@ public class ImportCommand : AsyncCommand<ImportSettings> {
     _messageSvc = messageSvc;
   }
 
-  const long OverheadUnitsPerGame = 1024 * 1024;
-
   public override async Task<int> ExecuteAsync(CommandContext context, ImportSettings settings, CancellationToken _cancellationToken) {
-    await new JobDispatcher<ImportSettings>()
-      .WithSettings(settings)
-      .WithJobOptions(new JobOptions(100))
-      .WithRenderOptions(new RenderOptions(true, "Game"))
-      .Assert(() => string.IsNullOrEmpty(settings.Console), () => _messageSvc.Error("Console is required with '-c' or '--console'"))
-      .Assert(() => !Directory.Exists(settings.ReadPath), () => _messageSvc.Error($"Path does not exist: '{settings.ReadPath}'"))
-      .GetFiles(_ => GetFiles(settings))
-      .GetNames(file => {
-        var filePath = file.FullName;
-        var fileNameNoExt = Path.GetFileNameWithoutExtension(filePath);
-        var displayName = fileNameNoExt.Replace("_", ":");
-        return (fileNameNoExt, displayName);
-      })
-      .GetProcess((file, name, displayName, task) => Process(file, name, displayName, settings, task, _igdbSvc))
-      .GetWork(files => FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame * files.Count)
-      .Run(_messageSvc);
+    var job = ImportJob.Create(settings.ToOptions(), _igdbSvc, _messageSvc);
+    await JobRenderer.Render(job, _messageSvc, new RenderOptions(true, "Game"));
 
     return 0;
-  }
-
-  async Task<JobResult> Process(
-    FileInfo fileInfo,
-    string name,
-    string displayName,
-    ImportSettings settings,
-    ProgressTask progress,
-    IgdbService igdbSvc
-  ) {
-    var result = await igdbSvc
-      .GetGame(displayName, settings.Console, _messageSvc)
-      .OnSuccessAsync(game => Success(fileInfo, game, name, settings, progress, igdbSvc))
-      .OnNotFoundAsync(() => NotFound(fileInfo, displayName, progress));
-
-    return result switch {
-      Success<IgdbGame> s => JobResult.SuccessResult,
-      _ => JobResult.SkipResult
-    };
-  }
-
-  private async Task Success(
-    FileInfo fileInfo,
-    IgdbGame game,
-    string name,
-    ImportSettings settings,
-    ProgressTask progress,
-    IgdbService igdbSvc
-  ) {
-    var filePath = fileInfo.FullName;
-    var fileSize = fileInfo.Length;
-    var overheadRemaining = OverheadUnitsPerGame;
-    var overheadStep = OverheadUnitsPerGame / 3;
-
-    progress.Increment(overheadStep);
-    overheadRemaining -= overheadStep;
-
-    var media = await igdbSvc
-      .GetMedia(game.Id)
-      .OnNotFoundAsync(async () => _messageSvc.Warning($"Media not found for: '{game.Name}'")) 
-      switch {
-        Success<IgdbMedia> m => m.Value,
-        _ => IgdbMedia.Empty
-      };
-    progress.Increment(overheadStep);
-    overheadRemaining -= overheadStep;
-
-    var gameCode = Encoder.Encode(game.Id);
-    var gameFolderName = $"{gameCode} - {name}";
-    var gameFolderPath = Path.Combine(settings.WritePath, gameFolderName);
-    var regionFolderPath = Path.Combine(gameFolderPath, "regions", settings.Region);
-    var versionsFolderPath = Path.Combine(regionFolderPath, "versions");
-    var fileExtension = FileHelper.GetFileExtensionFromZip(filePath);
-
-    Directory.CreateDirectory(versionsFolderPath);
-
-    var versionFilePath = Path.Combine(versionsFolderPath, settings.Version + ".zip");
-    var copiedForThisFile = 0L;
-    var copyProgress = new Progress<long>(bytes => {
-      if (bytes <= 0) return;
-      copiedForThisFile += bytes;
-      progress.Increment(bytes);
-    });
-
-    if (settings.Move) FileHelper.Move(filePath, versionFilePath, copyProgress);
-    else await FileHelper.Copy(filePath, versionFilePath, copyProgress);
-
-    if (copiedForThisFile < fileSize) {
-      progress.Increment(fileSize - copiedForThisFile);
-    }
-
-    // MetadataBuilder.BuildAndWrite(fileInfo.Name, game, media.Cover, media.Screenshots, settings);
-
-    MetadataBuilder.BuildAndWrite(
-      game.Name,
-      game.Id,
-      gameCode,
-      settings.Console,
-      game.Summary,
-      fileExtension,
-      media.Cover,
-      media.Screenshots,
-      gameFolderPath
-    );
-
-    if (overheadRemaining > 0) progress.Increment(overheadRemaining);
-  }
-
-  private async Task NotFound(FileInfo fileInfo, string displayName, ProgressTask progress) {
-    _messageSvc.Warning($"No IGDB match for: '{displayName}'");
-    progress.Increment(fileInfo.Length + OverheadUnitsPerGame);
-  }
-
-  public List<FileInfo> GetFiles(ImportSettings settings ) {
-    return Directory
-      .GetFiles(settings.ReadPath, "*.zip*")
-      .Where(f => string.IsNullOrEmpty(settings.Name) || Path.GetFileNameWithoutExtension(f) == settings.Name)
-      .Select(f => new FileInfo(f))
-      .ToList();
   }
 }

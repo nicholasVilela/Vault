@@ -1,23 +1,74 @@
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using Vault.Cli.Commands;
+using Vault.Core.Commands;
+using Vault.Core.Job;
 using Vault.Core.Message;
 
 namespace Vault.Cli.Renderer;
 
-public static class ConsoleRenderer {
+public static class JobRenderer {
+  public async static Task Render<T>(JobDispatcher<T> job, MessageService messageSvc, RenderOptions options) where T : BaseOptions {
+    await AnsiConsole.Progress()
+      .Columns(
+        new ProgressBarColumn(),
+        new PercentageColumn(),
+        new RemainingTimeColumn()
+        )
+      .UseRenderHook((renderable, tasks) =>
+        RenderHook(
+          job.Progress,
+          job.Options,
+          renderable,
+          options,
+          messageSvc
+        ))
+      .StartAsync(async ctx => {
+        job.Initialize(messageSvc);
+
+        var masterTask = ctx.AddTask(
+          "Master",
+          autoStart: true,
+          maxValue: job.Progress.TotalWork
+        );
+
+        var jobTask = job.Run(messageSvc);
+        var completedWork = 0L;
+
+        while (!jobTask.IsCompleted) {
+          var progress = job.Progress;
+          var increment = progress.CompletedWork - completedWork;
+
+          if (increment > 0) {
+            masterTask.Increment(increment);
+            completedWork = progress.CompletedWork;
+          }
+        }
+
+        await jobTask;
+
+        var finalProgress = job.Progress;
+        var finalIncrement = finalProgress.CompletedWork - completedWork;
+
+        if (finalIncrement > 0) {
+          masterTask.Increment(finalIncrement);
+        }
+      }
+    );
+
+    job.OnFinalize?.Invoke();
+  }
+
   public static IRenderable RenderHook(
-    int fileCount,
-    BaseSettings settings,
+    JobProgress jobProgress,
+    BaseOptions jobOptions,
     IRenderable renderable,
-    Func<int> getProcessedGames,
-    Func<int> getSkippedGames,
-    RenderOptions options,
+    RenderOptions renderOptions,
     MessageService messageSvc
   ) {
     var width = 40;
-    var title = RenderTitle(settings, width);
-    var info = RenderInfo(settings, fileCount, options, getProcessedGames, getSkippedGames, width);
+    var title = RenderTitle(jobOptions, width);
+    var info = RenderInfo(jobProgress, jobOptions, renderOptions, width);
     var progress = RenderProgress(renderable, width);
     var warnings = RenderWarnings(messageSvc);
     var errors = RenderErrors(messageSvc);
@@ -41,7 +92,7 @@ public static class ConsoleRenderer {
     return layout;
   }
 
-  private static Panel RenderTitle(BaseSettings settings, int width) {
+  private static Panel RenderTitle(BaseOptions settings, int width) {
     var grid =  new Grid()
       .AddColumn(new GridColumn().NoWrap())
       .AddRow(
@@ -57,34 +108,34 @@ public static class ConsoleRenderer {
     return panel;
   }
 
-  private static Panel RenderInfo(BaseSettings settings, int fileCount, RenderOptions options, Func<int> getProcessedGames, Func<int> getSkippedGames, int width) {
-    var gameLabel = string.IsNullOrEmpty(options.Suffix) ? "" : fileCount == 1 ? options.Suffix: $"{options.Suffix}s";
+  private static Panel RenderInfo(JobProgress progress, BaseOptions jobOptions, RenderOptions options, int width) {
+    var gameLabel = string.IsNullOrEmpty(options.Suffix) ? "" : progress.FileCount == 1 ? options.Suffix: $"{options.Suffix}s";
     var grid =  new Grid()
       .AddColumn(new GridColumn().PadLeft(0))
       .AddColumn(new GridColumn().PadLeft(1))
       .AddRow(
         new Markup($"[grey]Processed:[/]"),
-        new Markup($"[cyan]{getProcessedGames()}/{fileCount}[/] {(options.DisplayPlatform ? $"[green]{settings.Console}[/] " : "")}{gameLabel}")
+        new Markup($"[cyan]{progress.Processed}/{progress.FileCount}[/] {(options.DisplayPlatform ? $"[green]{jobOptions.Console}[/] " : "")}{gameLabel}")
       )
       .AddRow(
         new Markup($"[grey]Skipped:[/]"),
-        new Markup($"[cyan]{getSkippedGames()}[/]")
+        new Markup($"[cyan]{progress.Skipped}[/]")
       )
       .AddRow(
         new Markup("[grey]Name:[/]"),
-        new Markup($"[yellow]{settings.Name ?? "*"}[/]")
+        new Markup($"[yellow]{jobOptions.Name ?? "*"}[/]")
       )
       .AddRow(
         new Markup("[grey]Region:[/]"),
-        new Markup($"[yellow]{settings.Region}[/]")
+        new Markup($"[yellow]{jobOptions.Region}[/]")
       )
       .AddRow(
         new Markup("[grey]Version:[/]"),
-        new Markup($"[yellow]{settings.Version}[/]")
+        new Markup($"[yellow]{jobOptions.Version}[/]")
       )
       .AddRow(
         new Markup("[grey]Output:[/]"),
-        new Markup($"[green]{settings.WritePath}[/]")
+        new Markup($"[green]{jobOptions.WritePath}[/]")
       );
 
     var panel = new Panel(new Rows(grid))

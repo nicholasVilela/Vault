@@ -9,11 +9,13 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
-      "program": "${workspaceFolder}/bin/Debug/net11.0/Vault.dll",
+      "program": "${workspaceFolder}/Vault.Cli/bin/Debug/net11.0/Vault.Cli.dll",
       "args": [
         "metadata",
+        "-c",
+        "gba"
       ],
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}/Vault.Cli",
       "console": "internalConsole",
       "stopAtEntry": false
     },

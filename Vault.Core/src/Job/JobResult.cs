@@ -1,4 +1,4 @@
-namespace Vault.Cli.Job;
+namespace Vault.Core.Job;
 
 public union JobResult(Success, Skip) {
   public static JobResult SuccessResult => new Success();

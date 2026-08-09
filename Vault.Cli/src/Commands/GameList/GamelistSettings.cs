@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Spectre.Console.Cli;
+using Vault.Core.Commands;
 
 namespace Vault.Cli.Commands;
 
@@ -11,4 +12,17 @@ public class GamelistSettings : BaseSettings {
   [CommandOption("--no-images")]
   [Description("Do not download images.")]
   public bool NoImages { get; set; }
+
+  public override GamelistOptions ToOptions() => new() {
+    Title = Title,
+    ReadPath = ReadPath,
+    Destination = Destination,
+    DefaultDestination = DefaultDestination,
+    Console = Console,
+    Region = Region,
+    Version = Version,
+    Name = Name,
+    Drive = Drive,
+    NoImages = NoImages
+  };
 }

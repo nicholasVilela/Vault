@@ -1,6 +1,3 @@
-using Spectre.Console;
-using Vault.Cli.Commands;
-using Vault.Cli.Metadata.Data;
 using Vault.Core.IGDB.Data;
 using Vault.Core.Message;
 using Vault.Core.Encode;
@@ -8,7 +5,7 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using Vault.Core.Files;
 
-namespace Vault.Cli.Metadata;
+namespace Vault.Core.Commands;
 
 public static class MetadataBuilder {
   public static string Build(
@@ -72,7 +69,7 @@ public static class MetadataBuilder {
     return deserializer.Deserialize<GameMetadata>(reader);
   }
 
-  public static void BuildAndWrite(string fileName, IgdbGame game, string cover, List<string> screenshots, BaseSettings settings, MessageService messageSvc) {
+  public static void BuildAndWrite(string fileName, IgdbGame game, string cover, List<string> screenshots, BaseOptions settings, MessageService messageSvc) {
     var gameCode = Encoder.Encode(game.Id);
     var gameFolderName = $"{gameCode} - {fileName}";
     var gameFolderPath = Path.Combine(settings.WritePath, gameFolderName);
