@@ -3,15 +3,15 @@ using Vault.Core.IGDB;
 using Vault.Core.IGDB.Data;
 using Vault.Core.Files;
 using Vault.Core.Encode;
-using Vault.Core.Job;
-namespace Vault.Core.Commands;
+
+namespace Vault.Core.Jobs;
 
 public static class ImportJob {
   const long OverheadUnitsPerGame = 1024 * 1024;
 
-  public static JobDispatcher<ImportOptions> Create(ImportOptions options, IgdbService igdbSvc, MessageService messageSvc) {
-    var job = new JobDispatcher<ImportOptions>()
-      .WithDispatcherOptions(new JobDispatcherOptions(100))
+  public static JobRunner<ImportOptions> Create(ImportOptions options, IgdbService igdbSvc, MessageService messageSvc) {
+    var job = new JobRunner<ImportOptions>()
+      .WithDispatcherOptions(new JobRunnerOptions(100))
       .WithJobOptions(options)
       .Assert(() => string.IsNullOrEmpty(options.Console), () => messageSvc.Error("Console is required with '-c' or '--console'"))
       .Assert(() => !Directory.Exists(options.ReadPath), () => messageSvc.Error($"Path does not exist: '{options.ReadPath}'"))

@@ -1,16 +1,15 @@
 using Vault.Core.IGDB;
 using Vault.Core.IGDB.Data;
-using Vault.Core.Job;
 using Vault.Core.Message;
 
-namespace Vault.Core.Commands;
+namespace Vault.Core.Jobs;
 
 public static class MetadataJob {
   const int OverheadUnitsPerGame = 3;
 
-  public static JobDispatcher<MetadataOptions> Create(MetadataOptions settings, IgdbService igdbSvc, MessageService messageSvc) {
-    var job = new JobDispatcher<MetadataOptions>()
-      .WithDispatcherOptions(new JobDispatcherOptions(100))
+  public static JobRunner<MetadataOptions> Create(MetadataOptions settings, IgdbService igdbSvc, MessageService messageSvc) {
+    var job = new JobRunner<MetadataOptions>()
+      .WithDispatcherOptions(new JobRunnerOptions(100))
       .WithJobOptions(settings)
       .Assert(() => string.IsNullOrEmpty(settings.Console), () => messageSvc.Error("Console is required with '-c' or '--console'"))
       .Assert(() => !Directory.Exists(settings.ReadPath), () => messageSvc.Error($"Path does not exist: '{settings.ReadPath}'"))

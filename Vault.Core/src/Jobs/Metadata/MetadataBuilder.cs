@@ -5,7 +5,7 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using Vault.Core.Files;
 
-namespace Vault.Core.Commands;
+namespace Vault.Core.Jobs;
 
 public static class MetadataBuilder {
   public static string Build(

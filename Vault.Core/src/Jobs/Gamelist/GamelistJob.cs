@@ -2,19 +2,18 @@ using System.Collections.Concurrent;
 using Vault.Core.Message;
 using System.Xml.Linq;
 using Vault.Core.Http;
-using Vault.Core.Job;
 
-namespace Vault.Core.Commands;
+namespace Vault.Core.Jobs;
 
 public static class GamelistJob {
-  public static JobDispatcher<GamelistOptions> Create(GamelistOptions settings, MessageService messageSvc, HttpService httpSvc) {    
+  public static JobRunner<GamelistOptions> Create(GamelistOptions settings, MessageService messageSvc, HttpService httpSvc) {    
     var imagePath = @$"{settings.DefaultDestination}/images";
     if (!settings.NoImages && !Directory.Exists(imagePath)) Directory.CreateDirectory(imagePath);
 
     var gameElements = new ConcurrentBag<XElement>();
 
-    var job =  new JobDispatcher<GamelistOptions>()
-      .WithDispatcherOptions(new JobDispatcherOptions(100))
+    var job =  new JobRunner<GamelistOptions>()
+      .WithDispatcherOptions(new JobRunnerOptions(100))
       .WithJobOptions(settings)
       .Assert(() => string.IsNullOrEmpty(settings.Console), () => messageSvc.Error("Console is required with '-c' or '--console'"))
       .Assert(() => !Directory.Exists(settings.ReadPath), () => messageSvc.Error($"Path does not exist: '{settings.ReadPath}'"))

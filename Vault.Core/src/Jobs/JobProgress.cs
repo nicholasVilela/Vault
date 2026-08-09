@@ -1,4 +1,4 @@
-namespace Vault.Core.Job;
+namespace Vault.Core.Jobs;
 
 public readonly record struct JobProgress(
   int Processed,

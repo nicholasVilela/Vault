@@ -1,6 +1,6 @@
 using System.ComponentModel;
 using Spectre.Console.Cli;
-using Vault.Core.Commands;
+using Vault.Core.Jobs;
 
 namespace Vault.Cli.Commands;
 

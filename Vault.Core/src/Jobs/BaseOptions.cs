@@ -1,4 +1,4 @@
-namespace Vault.Core.Commands;
+namespace Vault.Core.Jobs;
 
 public class BaseOptions {
   public string Title { get; set; }

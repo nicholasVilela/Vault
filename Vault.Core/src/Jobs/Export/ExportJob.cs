@@ -1,15 +1,14 @@
 using Vault.Core.Message;
 using Vault.Core.Files;
-using Vault.Core.Job;
 
-namespace Vault.Core.Commands;
+namespace Vault.Core.Jobs;
 
 public static class ExportJob {
   const long OverheadUnitsPerGame = 1024 * 1024;
 
-  public static JobDispatcher<ExportOptions> Create(ExportOptions options, MessageService messageSvc) {
-    var job = new JobDispatcher<ExportOptions>()
-      .WithDispatcherOptions(new JobDispatcherOptions(100))
+  public static JobRunner<ExportOptions> Create(ExportOptions options, MessageService messageSvc) {
+    var job = new JobRunner<ExportOptions>()
+      .WithDispatcherOptions(new JobRunnerOptions(100))
       .WithJobOptions(options)
       .Assert(() => string.IsNullOrEmpty(options.Console), () => messageSvc.Error("Console is required with '-c' or '--console'"))
       .Assert(() => !Directory.Exists(options.ReadPath), () => messageSvc.Error($"Path does not exist: '{options.ReadPath}'"))

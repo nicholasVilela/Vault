@@ -1,6 +1,6 @@
 using Spectre.Console.Cli;
 using Vault.Cli.Renderer;
-using Vault.Core.Commands;
+using Vault.Core.Jobs;
 using Vault.Core.Message;
 
 namespace Vault.Cli.Commands;

@@ -1,18 +1,17 @@
 using Vault.Core.Files;
-using Vault.Core.Job;
 using Vault.Core.Message;
 
-namespace Vault.Core.Commands;
+namespace Vault.Core.Jobs;
 
 public static class ESDEJob {
   const int OverheadUnitsPerGame = 2;
 
-  public static JobDispatcher<ESDEOptions> Create(ESDEOptions options, MessageService messageSvc) {
+  public static JobRunner<ESDEOptions> Create(ESDEOptions options, MessageService messageSvc) {
     Directory.CreateDirectory($"{options.WritePath}/gamelists");
     Directory.CreateDirectory($"{options.WritePath}/downloaded_media");
 
-    var job = new JobDispatcher<ESDEOptions>()
-      .WithDispatcherOptions(new JobDispatcherOptions(100))
+    var job = new JobRunner<ESDEOptions>()
+      .WithDispatcherOptions(new JobRunnerOptions(100))
       .WithJobOptions(options)
       .GetFiles(_ => GetFiles(options))
       .GetNames(file => (file.FullName, GetConsoleName(file.Name.ToLower())))

@@ -1,10 +1,9 @@
-using Vault.Core.Commands;
 using Vault.Core.Extensions;
 using Vault.Core.Message;
 
-namespace Vault.Core.Job;
+namespace Vault.Core.Jobs;
 
-public class JobDispatcher<TOption> where TOption : BaseOptions {
+public class JobRunner<TOption> where TOption : BaseOptions {
   private Func<FileInfo, (string name, string displayName)> _onGetNames { get; set; }
   private Func<FileInfo, string, string, Action<long>, Task<JobResult>> _onProcess { get; set; }
   private Func<TOption, List<FileInfo>> _onGetFiles { get; set; }
@@ -13,7 +12,7 @@ public class JobDispatcher<TOption> where TOption : BaseOptions {
 
   private Dictionary<Func<bool>, Action> _assertions { get; set; } = new();
 
-  private JobDispatcherOptions _dispatcherOptions { get; set; }
+  private JobRunnerOptions _dispatcherOptions { get; set; }
   private TOption _options { get; set; }
 
   private int _fileCount;
@@ -37,42 +36,42 @@ public class JobDispatcher<TOption> where TOption : BaseOptions {
     Volatile.Read(ref _totalWork)
   );
 
-  public JobDispatcher<TOption> GetNames(Func<FileInfo, (string name, string displayName)> func) {
+  public JobRunner<TOption> GetNames(Func<FileInfo, (string name, string displayName)> func) {
     _onGetNames += func;
     return this;
   }
 
-  public JobDispatcher<TOption> GetProcess(Func<FileInfo, string, string, Action<long>, Task<JobResult>> func) {
+  public JobRunner<TOption> GetProcess(Func<FileInfo, string, string, Action<long>, Task<JobResult>> func) {
     _onProcess += func;
     return this;
   }
   
-  public JobDispatcher<TOption> GetFiles(Func<TOption, List<FileInfo>> func) {
+  public JobRunner<TOption> GetFiles(Func<TOption, List<FileInfo>> func) {
     _onGetFiles += func;
     return this;
   }
 
-  public JobDispatcher<TOption> GetWork(Func<List<FileInfo>, long> func) {
+  public JobRunner<TOption> GetWork(Func<List<FileInfo>, long> func) {
     _onGetWork += func;
     return this;
   }
 
-  public JobDispatcher<TOption> Finalize(Action func) {
+  public JobRunner<TOption> Finalize(Action func) {
     _onFinalize += func;
     return this;
   }
 
-  public JobDispatcher<TOption> Assert(Func<bool> func, Action action) {
+  public JobRunner<TOption> Assert(Func<bool> func, Action action) {
     _assertions.Add(func, action);
     return this;
   }
 
-  public JobDispatcher<TOption> WithDispatcherOptions(JobDispatcherOptions options) {
+  public JobRunner<TOption> WithDispatcherOptions(JobRunnerOptions options) {
     _dispatcherOptions = options;
     return this;
   }
 
-  public JobDispatcher<TOption> WithJobOptions(TOption options) {
+  public JobRunner<TOption> WithJobOptions(TOption options) {
     _options = options;
     return this;
   }

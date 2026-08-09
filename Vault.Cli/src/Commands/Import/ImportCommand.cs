@@ -2,7 +2,7 @@ using Spectre.Console.Cli;
 using Vault.Core.Message;
 using Vault.Cli.Renderer;
 using Vault.Core.IGDB;
-using Vault.Core.Commands;
+using Vault.Core.Jobs;
 
 namespace Vault.Cli.Commands;
 
