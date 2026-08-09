@@ -13,7 +13,7 @@ public class ExportCommand : AsyncCommand<ExportSettings> {
   }
 
   public override async Task<int> ExecuteAsync(CommandContext context, ExportSettings settings, CancellationToken _cancellationToken) {
-    var job = ExportJob.CreateJob(settings.ToOptions(), _messageSvc);
+    var job = ExportJob.Create(settings.ToOptions(), _messageSvc);
     await CommandRenderer.Render(job, _messageSvc, new RenderOptions(true, "Game"));
 
     return 0;

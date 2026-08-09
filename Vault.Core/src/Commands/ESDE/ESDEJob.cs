@@ -7,7 +7,7 @@ namespace Vault.Core.Commands;
 public static class ESDEJob {
   const int OverheadUnitsPerGame = 2;
 
-  public static JobDispatcher<ESDEOptions> CreateJob(ESDEOptions options, MessageService messageSvc) {
+  public static JobDispatcher<ESDEOptions> Create(ESDEOptions options, MessageService messageSvc) {
     Directory.CreateDirectory($"{options.WritePath}/gamelists");
     Directory.CreateDirectory($"{options.WritePath}/downloaded_media");
 
