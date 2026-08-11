@@ -21,4 +21,5 @@ app.MapMetadata();
 app.MapGamelist();
 app.MapImport();
 app.MapExport();
+app.MapESDE();
 app.Run();
