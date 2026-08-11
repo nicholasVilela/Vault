@@ -1,4 +1,3 @@
-using Vault.Core.Http;
 using Vault.Core.IGDB;
 using Vault.Core.Jobs;
 using Vault.Core.Message;
