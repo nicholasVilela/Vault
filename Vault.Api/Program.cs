@@ -20,4 +20,5 @@ app.MapOpenApi();
 app.MapMetadata();
 app.MapGamelist();
 app.MapImport();
+app.MapExport();
 app.Run();
