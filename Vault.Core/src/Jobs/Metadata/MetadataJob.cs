@@ -9,8 +9,8 @@ public static class MetadataJob {
 
   public static JobRunner<IMetadataSettings> Create(IMetadataSettings settings, IgdbService igdbSvc, MessageService messageSvc) {
     var job = new JobRunner<IMetadataSettings>()
-      .WithDispatcherOptions(new JobRunnerOptions(100))
-      .WithJobOptions(settings)
+      .WithRunnerSettings(new JobRunnerSettings(100))
+      .WithJobSettings(settings)
       .Assert(() => string.IsNullOrEmpty(settings.Console), () => messageSvc.Error("Console is required with '-c' or '--console'"))
       .Assert(() => !Directory.Exists(settings.ReadPath), () => messageSvc.Error($"Path does not exist: '{settings.ReadPath}'"))
       .GetFiles(_ => GetFiles(settings))

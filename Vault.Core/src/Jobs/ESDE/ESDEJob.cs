@@ -11,8 +11,8 @@ public static class ESDEJob {
     Directory.CreateDirectory($"{settings.WritePath}/downloaded_media");
 
     var job = new JobRunner<IESDESettings>()
-      .WithDispatcherOptions(new JobRunnerOptions(100))
-      .WithJobOptions(settings)
+      .WithRunnerSettings(new JobRunnerSettings(100))
+      .WithJobSettings(settings)
       .GetFiles(_ => GetFiles(settings))
       .GetNames(file => (file.FullName, GetConsoleName(file.Name.ToLower())))
       .GetProcess((file, fileName, displayName, advance) => Process(fileName, displayName, settings, advance, messageSvc))
@@ -24,7 +24,7 @@ public static class ESDEJob {
   public static async Task<JobResult> Process(
     string folderPath,
     string console,
-    IESDESettings options,
+    IESDESettings settings,
     Action<long> advance,
     MessageService messageSvc
   ) {
@@ -34,13 +34,13 @@ public static class ESDEJob {
     }
 
     var sourceGamelistPath = $"{folderPath}/gamelist.xml";
-    var targetGamelistPath = $"{options.WritePath}/gamelists/{console}";
+    var targetGamelistPath = $"{settings.WritePath}/gamelists/{console}";
     Directory.CreateDirectory(targetGamelistPath);
     await FileHelper.Copy(sourceGamelistPath, $"{targetGamelistPath}/gamelist.xml");
     advance(1);
 
     var sourceImagesPath = $"{folderPath}/images";
-    var targetImagesPath = $"{options.WritePath}/downloaded_media/{console}/covers";
+    var targetImagesPath = $"{settings.WritePath}/downloaded_media/{console}/covers";
     Directory.CreateDirectory(targetImagesPath);
     foreach (var imagePath in Directory.EnumerateFiles(sourceImagesPath)) await FileHelper.Copy(imagePath, $"{targetImagesPath}/{new FileInfo(imagePath).Name}");
     advance(1);
@@ -48,15 +48,15 @@ public static class ESDEJob {
     return JobResult.SuccessResult;
   }
 
-  public static List<FileInfo> GetFiles(IESDESettings options) {
-    if (string.IsNullOrEmpty(options.ConsoleCSV)) {
-      return Directory.EnumerateDirectories($"{options.Drive}/consoles").Select(file => new FileInfo(file)).Where(file => Path.Exists($"{file.FullName}/gamelist.xml")).ToList();
+  public static List<FileInfo> GetFiles(IESDESettings settings) {
+    if (string.IsNullOrEmpty(settings.ConsoleCSV)) {
+      return Directory.EnumerateDirectories($"{settings.Drive}/consoles").Select(file => new FileInfo(file)).Where(file => Path.Exists($"{file.FullName}/gamelist.xml")).ToList();
     }
 
     var files = new List<FileInfo>();
-    var consoles = options.ConsoleCSV.Split(",");
+    var consoles = settings.ConsoleCSV.Split(",");
     foreach (var console in consoles) {
-      var directory = $"{options.Drive}/consoles/{console.ToLower()}";
+      var directory = $"{settings.Drive}/consoles/{console.ToLower()}";
       files.Add(new FileInfo(directory));
     }
 

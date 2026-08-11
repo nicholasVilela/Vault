@@ -9,20 +9,20 @@ namespace Vault.Core.Jobs;
 public static class ImportJob {
   const long OverheadUnitsPerGame = 1024 * 1024;
 
-  public static JobRunner<IImportSettings> Create(IImportSettings options, IgdbService igdbSvc, MessageService messageSvc) {
+  public static JobRunner<IImportSettings> Create(IImportSettings settings, IgdbService igdbSvc, MessageService messageSvc) {
     var job = new JobRunner<IImportSettings>()
-      .WithDispatcherOptions(new JobRunnerOptions(100))
-      .WithJobOptions(options)
-      .Assert(() => string.IsNullOrEmpty(options.Console), () => messageSvc.Error("Console is required with '-c' or '--console'"))
-      .Assert(() => !Directory.Exists(options.ReadPath), () => messageSvc.Error($"Path does not exist: '{options.ReadPath}'"))
-      .GetFiles(_ => GetFiles(options))
+      .WithRunnerSettings(new JobRunnerSettings(100))
+      .WithJobSettings(settings)
+      .Assert(() => string.IsNullOrEmpty(settings.Console), () => messageSvc.Error("Console is required with '-c' or '--console'"))
+      .Assert(() => !Directory.Exists(settings.ReadPath), () => messageSvc.Error($"Path does not exist: '{settings.ReadPath}'"))
+      .GetFiles(_ => GetFiles(settings))
       .GetNames(file => {
         var filePath = file.FullName;
         var fileNameNoExt = Path.GetFileNameWithoutExtension(filePath);
         var displayName = fileNameNoExt.Replace("_", ":");
         return (fileNameNoExt, displayName);
       })
-      .GetProcess((file, name, displayName, advance) => Process(file, name, displayName, options, advance, igdbSvc, messageSvc))
+      .GetProcess((file, name, displayName, advance) => Process(file, name, displayName, settings, advance, igdbSvc, messageSvc))
       .GetWork(files => FileHelper.TotalCopyBytes(files) + OverheadUnitsPerGame * files.Count);
 
     return job;

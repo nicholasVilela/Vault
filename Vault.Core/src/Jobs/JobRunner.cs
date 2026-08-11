@@ -3,17 +3,17 @@ using Vault.Core.Message;
 
 namespace Vault.Core.Jobs;
 
-public class JobRunner<TOption> where TOption : IJobSettings {
+public class JobRunner<TSettings> where TSettings : IJobSettings {
   private Func<FileInfo, (string name, string displayName)> _onGetNames { get; set; }
   private Func<FileInfo, string, string, Action<long>, Task<JobResult>> _onProcess { get; set; }
-  private Func<TOption, List<FileInfo>> _onGetFiles { get; set; }
+  private Func<TSettings, List<FileInfo>> _onGetFiles { get; set; }
   private Func<List<FileInfo>, long> _onGetWork { get; set; }
   private Action _onFinalize { get; set; }
 
   private Dictionary<Func<bool>, Action> _assertions { get; set; } = new();
 
-  private JobRunnerOptions _dispatcherOptions { get; set; }
-  private TOption _options { get; set; }
+  private JobRunnerSettings _jobRunnerSettings { get; set; }
+  private TSettings _jobSettings { get; set; }
 
   private int _fileCount;
   private int _processed;
@@ -25,9 +25,9 @@ public class JobRunner<TOption> where TOption : IJobSettings {
 
   public Action OnFinalize => _onFinalize;
   public Func<List<FileInfo>, long> OnGetWork => _onGetWork;
-  public Func<TOption, List<FileInfo>> OnGetFiles => _onGetFiles;
+  public Func<TSettings, List<FileInfo>> OnGetFiles => _onGetFiles;
 
-  public TOption Options => _options;
+  public TSettings Options => _jobSettings;
   public JobProgress Progress => new (
     Volatile.Read(ref _processed),
     Volatile.Read(ref _skipped),
@@ -36,52 +36,52 @@ public class JobRunner<TOption> where TOption : IJobSettings {
     Volatile.Read(ref _totalWork)
   );
 
-  public JobRunner<TOption> GetNames(Func<FileInfo, (string name, string displayName)> func) {
+  public JobRunner<TSettings> GetNames(Func<FileInfo, (string name, string displayName)> func) {
     _onGetNames += func;
     return this;
   }
 
-  public JobRunner<TOption> GetProcess(Func<FileInfo, string, string, Action<long>, Task<JobResult>> func) {
+  public JobRunner<TSettings> GetProcess(Func<FileInfo, string, string, Action<long>, Task<JobResult>> func) {
     _onProcess += func;
     return this;
   }
   
-  public JobRunner<TOption> GetFiles(Func<TOption, List<FileInfo>> func) {
+  public JobRunner<TSettings> GetFiles(Func<TSettings, List<FileInfo>> func) {
     _onGetFiles += func;
     return this;
   }
 
-  public JobRunner<TOption> GetWork(Func<List<FileInfo>, long> func) {
+  public JobRunner<TSettings> GetWork(Func<List<FileInfo>, long> func) {
     _onGetWork += func;
     return this;
   }
 
-  public JobRunner<TOption> Finalize(Action func) {
+  public JobRunner<TSettings> Finalize(Action func) {
     _onFinalize += func;
     return this;
   }
 
-  public JobRunner<TOption> Assert(Func<bool> func, Action action) {
+  public JobRunner<TSettings> Assert(Func<bool> func, Action action) {
     _assertions.Add(func, action);
     return this;
   }
 
-  public JobRunner<TOption> WithDispatcherOptions(JobRunnerOptions options) {
-    _dispatcherOptions = options;
+  public JobRunner<TSettings> WithRunnerSettings(JobRunnerSettings settings) {
+    _jobRunnerSettings = settings;
     return this;
   }
 
-  public JobRunner<TOption> WithJobOptions(TOption options) {
-    _options = options;
+  public JobRunner<TSettings> WithJobSettings(TSettings settings) {
+    _jobSettings = settings;
     return this;
   }
 
   public void Initialize(MessageService messageSvc) {
     if (!CheckAssertions()) return;
 
-    _files = _onGetFiles(_options);
+    _files = _onGetFiles(_jobSettings);
     if (_files.Count == 0) {
-      messageSvc.Error($"No game files found in: '{_options.ReadPath}'{(!string.IsNullOrEmpty(_options.Name) ? $" with name: '{_options.Name}'" : "")}");
+      messageSvc.Error($"No game files found in: '{_jobSettings.ReadPath}'{(!string.IsNullOrEmpty(_jobSettings.Name) ? $" with name: '{_jobSettings.Name}'" : "")}");
       return;
     }
 
@@ -90,7 +90,7 @@ public class JobRunner<TOption> where TOption : IJobSettings {
   }
 
   public async Task Run(MessageService messageSvc) {
-    using var semaphore = new SemaphoreSlim(_dispatcherOptions.MaxThreads);
+    using var semaphore = new SemaphoreSlim(_jobRunnerSettings.MaxThreads);
 
     var tasks = new List<Task>();
     foreach (var file in _files) {

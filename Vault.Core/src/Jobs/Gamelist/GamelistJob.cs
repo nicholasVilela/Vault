@@ -13,8 +13,8 @@ public static class GamelistJob {
     var gameElements = new ConcurrentBag<XElement>();
 
     var job =  new JobRunner<IGamelistSettings>()
-      .WithDispatcherOptions(new JobRunnerOptions(100))
-      .WithJobOptions(settings)
+      .WithRunnerSettings(new JobRunnerSettings(100))
+      .WithJobSettings(settings)
       .Assert(() => string.IsNullOrEmpty(settings.Console), () => messageSvc.Error("Console is required with '-c' or '--console'"))
       .Assert(() => !Directory.Exists(settings.ReadPath), () => messageSvc.Error($"Path does not exist: '{settings.ReadPath}'"))
       .GetFiles(_ => GetFiles(settings))
