@@ -19,4 +19,5 @@ var app = builder.Build();
 app.MapOpenApi();
 app.MapMetadata();
 app.MapGamelist();
+app.MapImport();
 app.Run();
