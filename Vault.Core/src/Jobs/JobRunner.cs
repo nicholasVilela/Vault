@@ -98,9 +98,7 @@ public class JobRunner<TSettings> where TSettings : IJobSettings {
       tasks.Add(Task.Run(async () => {
         await semaphore.WaitAsync();
         await _onProcess(file, name, displayName, amount => Interlocked.Add(ref _completedWork, amount))
-          .OnSkipAsync(async () => {
-            Interlocked.Increment(ref _skipped);
-          })
+          .OnSkipAsync(async () => Interlocked.Increment(ref _skipped))
           .Catch(ex => messageSvc.Error($"Error processing {displayName}: {ex.Message}"))
           .Finally(() => {
             semaphore.Release();
