@@ -27,7 +27,7 @@ public class JobRunner<TSettings> where TSettings : IJobSettings {
   public Func<List<FileInfo>, long> OnGetWork => _onGetWork;
   public Func<TSettings, List<FileInfo>> OnGetFiles => _onGetFiles;
 
-  public TSettings Options => _jobSettings;
+  public TSettings Settings => _jobSettings;
   public JobProgress Progress => new (
     Volatile.Read(ref _processed),
     Volatile.Read(ref _skipped),

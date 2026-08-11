@@ -6,7 +6,7 @@ using Vault.Core.Message;
 namespace Vault.Cli.Renderer;
 
 public static class CommandRenderer {
-  public async static Task Render<T>(JobRunner<T> job, MessageService messageSvc, RenderOptions options) where T : IJobSettings {
+  public async static Task Render<T>(JobRunner<T> job, MessageService messageSvc, RenderSettings settings) where T : IJobSettings {
     await AnsiConsole.Progress()
       .Columns(
         new ProgressBarColumn(),
@@ -16,9 +16,9 @@ public static class CommandRenderer {
       .UseRenderHook((renderable, tasks) =>
         RenderHook(
           job.Progress,
-          job.Options,
+          job.Settings,
           renderable,
-          options,
+          settings,
           messageSvc
         ))
       .StartAsync(async ctx => {
@@ -43,14 +43,14 @@ public static class CommandRenderer {
 
   public static IRenderable RenderHook(
     JobProgress jobProgress,
-    IJobSettings jobOptions,
+    IJobSettings jobSettings,
     IRenderable renderable,
-    RenderOptions renderOptions,
+    RenderSettings renderSettings,
     MessageService messageSvc
   ) {
     var width = 40;
-    var title = RenderTitle(jobOptions, width);
-    var info = RenderInfo(jobProgress, jobOptions, renderOptions, width);
+    var title = RenderTitle(jobSettings, width);
+    var info = RenderInfo(jobProgress, jobSettings, renderSettings, width);
     var progress = RenderProgress(renderable, width);
     var warnings = RenderWarnings(messageSvc);
     var errors = RenderErrors(messageSvc);
@@ -90,14 +90,14 @@ public static class CommandRenderer {
     return panel;
   }
 
-  private static Panel RenderInfo(JobProgress progress, IJobSettings jobOptions, RenderOptions options, int width) {
-    var gameLabel = string.IsNullOrEmpty(options.Suffix) ? "" : progress.FileCount == 1 ? options.Suffix: $"{options.Suffix}s";
+  private static Panel RenderInfo(JobProgress progress, IJobSettings jobSettings, RenderSettings renderSettings, int width) {
+    var gameLabel = string.IsNullOrEmpty(renderSettings.Suffix) ? "" : progress.FileCount == 1 ? renderSettings.Suffix: $"{renderSettings.Suffix}s";
     var grid =  new Grid()
       .AddColumn(new GridColumn().PadLeft(0))
       .AddColumn(new GridColumn().PadLeft(1))
       .AddRow(
         new Markup($"[grey]Processed:[/]"),
-        new Markup($"[cyan]{progress.Processed}/{progress.FileCount}[/] {(options.DisplayPlatform ? $"[green]{jobOptions.Console}[/] " : "")}{gameLabel}")
+        new Markup($"[cyan]{progress.Processed}/{progress.FileCount}[/] {(renderSettings.DisplayPlatform ? $"[green]{jobSettings.Console}[/] " : "")}{gameLabel}")
       )
       .AddRow(
         new Markup($"[grey]Skipped:[/]"),
@@ -105,19 +105,19 @@ public static class CommandRenderer {
       )
       .AddRow(
         new Markup("[grey]Name:[/]"),
-        new Markup($"[yellow]{jobOptions.Name ?? "*"}[/]")
+        new Markup($"[yellow]{jobSettings.Name ?? "*"}[/]")
       )
       .AddRow(
         new Markup("[grey]Region:[/]"),
-        new Markup($"[yellow]{jobOptions.Region}[/]")
+        new Markup($"[yellow]{jobSettings.Region}[/]")
       )
       .AddRow(
         new Markup("[grey]Version:[/]"),
-        new Markup($"[yellow]{jobOptions.Version}[/]")
+        new Markup($"[yellow]{jobSettings.Version}[/]")
       )
       .AddRow(
         new Markup("[grey]Output:[/]"),
-        new Markup($"[green]{jobOptions.WritePath}[/]")
+        new Markup($"[green]{jobSettings.WritePath}[/]")
       );
 
     var panel = new Panel(new Rows(grid))
