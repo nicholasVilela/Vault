@@ -3,4 +3,5 @@
 **/logs
 **/nupkg
 **/publish
+deploy.txt
 build.txt
