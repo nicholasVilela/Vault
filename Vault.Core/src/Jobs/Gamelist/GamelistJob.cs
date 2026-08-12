@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Vault.Core.Message;
 using System.Xml.Linq;
 using Vault.Core.Http;
+using Vault.Core.Files;
 
 namespace Vault.Core.Jobs;
 
@@ -20,7 +21,7 @@ public static class GamelistJob {
       .GetFiles(_ => GetFiles(settings))
       .GetNames(file => {
         var filePath = file.FullName;
-        var name = SplitPath(filePath);
+        var name = FileHelper.GetName(filePath);
         var displayName = name.Replace("_", ":");
         return (name, displayName);
       })
@@ -102,11 +103,6 @@ public static class GamelistJob {
     if (File.Exists(yml))  return yml;
 
     return null;
-  }
-
-  private static string SplitPath(string value, int index = 4) {
-    var name = Path.GetFileName(value);
-    return name.Split(" - ", 2)[1];
   }
 
   public static string GetGameName(string folderName) {

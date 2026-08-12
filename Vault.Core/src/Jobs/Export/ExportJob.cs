@@ -15,7 +15,7 @@ public static class ExportJob {
       .GetFiles(_ => GetFiles(settings))
       .GetNames(file => {
         var filePath = file.FullName;
-        var name = SplitPath(filePath);
+        var name = FileHelper.GetName(filePath);
         var displayName = name.Replace("_", ":");
         return (name, displayName);
       })
@@ -47,18 +47,13 @@ public static class ExportJob {
       .Where(f => Path.GetFileName(f).Contains(" - "))
       .Select(f => new {
         Path = f,
-        Name = SplitPath(f)
+        Name = FileHelper.GetName(f)
       })
       .Where(f => string.IsNullOrEmpty(settings.Name) || Path.GetFileNameWithoutExtension(f.Name) == settings.Name)
       .Select(f => Path.Combine(f.Path, "regions", settings.Region, "versions", $"{settings.Version}.zip"))
       .Where(f => File.Exists(f))
       .Select(f => new FileInfo(f))
       .ToList();
-  }
-
-  private static string SplitPath(string value, int index = 4) {
-    var name = Path.GetFileName(value);
-    return name.Split(" - ", 2)[1];
   }
 
   private static async Task GetProgress(Action<long> advance, long total, Func<IProgress<long>, Task> operation) {

@@ -123,4 +123,9 @@ public static class FileHelper {
     File.Move(sourcePath, destPath);
     progress?.Report(totalBytes);
   }
+
+  public static string GetName(string value) {
+    var name = Path.GetFileName(value);
+    return name.Split(" - ", 2)[1];
+  }
 }

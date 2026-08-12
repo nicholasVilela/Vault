@@ -1,3 +1,4 @@
+using Vault.Core.Files;
 using Vault.Core.IGDB;
 using Vault.Core.IGDB.Data;
 using Vault.Core.Message;
@@ -16,7 +17,7 @@ public static class MetadataJob {
       .GetFiles(_ => GetFiles(settings))
       .GetNames(file => {
         var filePath = file.FullName;
-        var name = SplitPath(filePath);
+        var name = FileHelper.GetName(filePath);
         var displayName = name.Replace("_", ":");
         return (name, displayName);
       })
@@ -86,10 +87,5 @@ public static class MetadataJob {
     }
 
     return result;
-  }
-
-  private static string SplitPath(string value) {
-    var name = Path.GetFileName(value);
-    return name.Split(" - ", 2)[1];
   }
 }
