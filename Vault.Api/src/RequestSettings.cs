@@ -12,5 +12,5 @@ public abstract class RequestSettings : IJobSettings {
   public string Region { get; set; } = "USA";
   public string Version { get; set; } = "1.0.0";
   public string Name { get; set; }
-  public string Drive { get => $@"{field}:"; set; } = "Z";
+  public string Drive { get; set; } = "Z";
 }

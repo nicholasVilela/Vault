@@ -2,4 +2,5 @@
 **/obj
 **/logs
 **/nupkg
+**/publish
 build.txt

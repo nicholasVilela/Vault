@@ -88,7 +88,8 @@ public static class MetadataJob {
     return result;
   }
 
-  private static string SplitPath(string value, int index = 4) {
-    return value.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[index].Split(" - ", 2)[1];
+  private static string SplitPath(string value) {
+    var name = Path.GetFileName(value);
+    return name.Split(" - ", 2)[1];
   }
 }

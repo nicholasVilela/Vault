@@ -57,7 +57,8 @@ public static class ExportJob {
   }
 
   private static string SplitPath(string value, int index = 4) {
-    return value.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[index].Split(" - ", 2)[1];
+    var name = Path.GetFileName(value);
+    return name.Split(" - ", 2)[1];
   }
 
   private static async Task GetProgress(Action<long> advance, long total, Func<IProgress<long>, Task> operation) {
